@@ -409,7 +409,10 @@
                 <div class="form-group">
                   <label for="recaptcha-input" class="col-sm-3 col-md-2 control-label">reCAPTCHA:</label> <!-- This text can be a template variable -->
                   <div class="col-sm-9 col-md-10">
-                      <div class="g-recaptcha" data-callback="recaptchaCallback" data-sitekey="{{ G_R_SITE_KEY }}"></div> <!-- Need to finish server implementation and import key from settings -->
+                      <div class="g-recaptcha"
+                           data-callback="reCVerificationCallback"
+                           data-expired-callback="reCExpiredCallback"
+                           data-sitekey="{{ G_R_SITE_KEY }}"></div> <!-- Need to finish server implementation and import key from settings -->
                       <span id="recaptcha-input-help-block" class="help-block">
                         <!-- Error handling / input validation has been removed temporarily and would be placed here -->
                         Tick the box to prove that you're not a robot.

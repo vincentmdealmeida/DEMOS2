@@ -54,8 +54,12 @@ document.getElementById('files').addEventListener('change', processFileChange, f
 
 // reCAPTCHA
 
-function recaptchaCallback(){
+function reCVerificationCallback() {
     $('#submit-event-create').removeAttr('disabled');
+}
+
+function reCExpiredCallback() {
+    $('#submit-event-create').prop('disabled', true);
 }
 
 // Slug field.
