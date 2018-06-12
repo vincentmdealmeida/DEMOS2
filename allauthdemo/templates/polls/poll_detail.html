@@ -1,0 +1,85 @@
+{% extends "bases/bootstrap-with-nav.html" %}
+{% load staticfiles %}
+{% load bootstrap3 %}
+
+{% block app_js_vars %}
+
+
+  var option_count = {{ object.options.count }};
+{% endblock %}
+
+{% block content %}
+
+<div class="container">
+  <input id="event-param" type="text" value="{{event.EID}}" hidden></input>
+  <input id="comb_pk" type="text" value="{{event.public_key}}" hidden></input>
+
+ <h1>Poll: {{object.question_text}}</h1>
+ <span>Poll {{ poll_num }} of {{ poll_count }} in Event: <a href="{% url 'polls:view-event' object.event.id %}">{{ object.event.title }}</a></span>
+ <div class="panel panel-body">
+  {% if prev_index %}
+    <a href="{% url 'polls:view-poll' event_id=object.event.id poll_num=prev_index %}" class="btn" role="button">
+      <span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
+    </a>
+  {% endif %}
+  {% if next_index %}
+  <a href="{% url 'polls:view-poll' event_id=object.event.id poll_num=next_index %}" class="btn" role="button">
+    <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
+  </a>
+  {% endif %}
+ </div>
+ <a href="{% url 'polls:edit-poll' event_id=object.event.id poll_num=poll_num %}"><span class="fa fa-pencil"></span> Edit Poll</a>
+ {% if object.options.all %}
+   <h3>Options</h3>
+   <p> {{ vote_count }} vote(s) have been cast</p>
+   {% if can_vote %}
+     {% if has_voted %}
+       <p>You have already voted in this poll. Resubmitting the form will change your vote.</p>
+     {% endif %}
+     <p>Voting as {{ voter_email }} -- Do NOT share this url</p>
+     {% load crispy_forms_tags %}
+     <div class="panel panel-default">
+       <div class="panel-heading">Options</div>
+       <div class="panel panel-body">
+         <select class="radio-inline select form-control" id="poll-options" name="options">
+          {% load custom_filters_tags %}
+           {% for option in object.options.all %}
+             <option value="{{forloop.counter|get_ballot_value}}">{{ option.choice_text }}</option>
+           {% endfor %}
+         </select>
+                  
+         <button id="keygen-btn" onclick="demosEncrypt.encryptAndSubmit()" class="btn btn-default">Encrypt & Submit</button>
+         <form id="cipher-form" method="post" action="" class="">
+             {% crispy form %}
+          {% csrf_token %}
+         </form>
+       </div>
+     </div>
+   {% else %}
+     <div class="alert alert-warning" role="alert">
+       <p>You do not have permission to vote in this Event.</p>
+     </div>
+   {% endif %}
+ {% else %}
+   <p>No options are available.</p>
+ {% endif %}
+</div>
+<br>
+<br>
+POLL ENC {{ object.enc }}
+
+{% if form.errors %}
+    {% for field in form %}
+        {% for error in field.errors %}
+            <div class="alert alert-danger">
+                <strong>{{ error|escape }}</strong>
+            </div>
+        {% endfor %}
+    {% endfor %}
+    {% for error in form.non_field_errors %}
+        <div class="alert alert-danger">
+            <strong>{{ error|escape }}</strong>
+        </div>
+    {% endfor %}
+{% endif %}
+{% endblock %}

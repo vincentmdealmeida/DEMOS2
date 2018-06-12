@@ -1,0 +1,429 @@
+{% extends "bases/bootstrap-with-nav.html" %}
+{% load staticfiles %}
+{% load bootstrap3 %}
+
+
+{% block content %}
+
+<!-- The following UI was ported from the Election Authority UI in DEMOS1 by Vincent de Almeida -->
+<!-- The DEMOS1 repository can be found at: https://github.com/mlevogiannis/demos-voting -->
+<!-- TODO: look into i18n translations as this was a feature implemented in DEMOS1 -->
+<hr/>
+<div class="container">
+    <div class="page-header">
+        <h2>Create New Event with Polls</h2>
+    </div>
+    <div class="row">
+        <div class="col-xs-12">
+            <form id="election-form" class="form-horizontal" method="POST" novalidate>
+                {% csrf_token %}
+                <!-- TODO: Have not imported the if form not valid template code as this needs further investigating -->
+                <!-- Name -->
+                <div class="form-group"> <!-- Excluded class(missing %s): { if election_form.name.errors }has-error{ endif } -->
+                  <label for="name-input" class="col-sm-3 col-md-2 control-label">Name:</label> <!-- This text can be a template variable -->
+                  <div class="col-sm-9 col-md-10">
+                    <input type="text" class="form-control" id="name-input" placeholder="Example: My poll" name="name-input" maxlength="255">
+                    <span id="name-input-help-block" class="help-block">
+                        <!-- Error handling / input validation has been removed temporarily and would be placed here -->
+                        A short and clear name.
+                        <!-- TODO: Alignment is potentially slightly too much to the left -->
+                    </span>
+                  </div>
+                </div>
+                <!-- Slug / Identifier -->
+                <div class="form-group"> <!-- Excluded class(missing %s): { if election_form.slug.errors }has-error{ endif } -->
+                  <label for="identifier-input" class="col-sm-3 col-md-2 control-label">Identifier:</label> <!-- This text can be a template variable -->
+                  <div class="col-sm-9 col-md-10">
+                    <input type="text" class="form-control" id="identifier-input" placeholder="Example: My-poll" name="identifier-input" maxlength="255">
+                      <span id="identifier-input-help-block" class="help-block">
+                        <!-- Error handling / input validation has been removed temporarily and would be placed here -->
+                        Used in the election URL, it must only consist of letters, numbers, underscores or hyphens; no whitespace is permitted.
+                        <!-- TODO: Alignment is potentially slightly too much to the left -->
+                      </span>
+                  </div>
+                </div>
+                <!-- Voting start time -->
+                <div class="form-group "> <!-- Excluded class(missing %s): { if election_form.voting_starts_at.errors }has-error{ endif } -->
+                  <label for="vote-start-input" class="col-sm-3 col-md-2 control-label">Voting starts at:</label>
+                  <div class="col-sm-9 col-md-10">
+                    <div class="input-group date">
+                      <input type="text" class="form-control" data-date-format="YYYY-MM-DD H:mm" id="vote-start-input" name="vote-start-input">
+                      <span class="input-group-addon btn">
+                        <i class="fa fa-calendar" aria-hidden="true"></i>
+                        /
+                        <i class="fa fa-clock-o" aria-hidden="true"></i>
+                      </span>
+                    </div>
+                    <span id="vote-start-input-help-block" class="help-block">
+                      <!-- Error handling / input validation has been removed temporarily and would be placed here -->
+                      Date and time when registered voters can commence voting.
+                    </span>
+                  </div>
+                </div>
+                <!-- Voting end time -->
+                <div class="form-group "> <!-- Excluded class(missing %s): { if election_form.voting_ends_at.errors }has-error{ endif } -->
+                  <label for="vote-end-input" class="col-sm-3 col-md-2 control-label">Voting ends at:</label>
+                  <div class="col-sm-9 col-md-10">
+                    <div class="input-group date">
+                      <input type="text" class="form-control" data-date-format="YYYY-MM-DD H:mm" id="vote-end-input" name="vote-end-input">
+                      <span class="input-group-addon btn">
+                        <i class="fa fa-calendar" aria-hidden="true"></i>
+                        /
+                        <i class="fa fa-clock-o" aria-hidden="true"></i>
+                      </span>
+                    </div>
+                    <span id="vote-end-input-help-block" class="help-block">
+                      <!-- Error handling / input validation has been removed temporarily and would be placed here -->
+                      Date and time when registered voters can no longer vote.
+                    </span>
+                  </div>
+                </div>
+                <!-- Question / Statement -->
+                <div class="form-group">
+                  <label for="question-input" class="col-sm-3 col-md-2 control-label">Question / Statement:</label> <!-- This text can be a template variable -->
+                  <div class="col-sm-9 col-md-10">
+                      <input type="text" class="form-control" id="question-input" placeholder="Example: Elections for the European Parliament" name="question-input" maxlength="200">
+                      <span id="question-input-help-block" class="help-block">
+                        <!-- Error handling / input validation has been removed temporarily and would be placed here -->
+                        Question / Statement that will be put forward to voters along with the below options.
+                        <!-- TODO: Alignment is potentially slightly too much to the left -->
+                      </span>
+                  </div>
+                </div>
+                <!-- Options -->
+                <div class="form-group">
+                  <label for="options-input" class="col-sm-3 col-md-2 control-label">Options:</label> <!-- This text can be a template variable -->
+                  <div class="col-sm-9 col-md-10">
+                    <div class="form-group"> <!-- Excluded class(missing %s): { if option_formset.non_form_errors }has-error{ endif }-->
+                        <table id="options-input-table" class="table table-hover">
+                          <thead>
+                            <tr>
+                              <th class="text-center">#</th>
+                              <th>Option</th>
+                              <th class="text-center">Actions</th>
+                              <!--Not sure what this does so disabling it: <th class="hidden">{ option_formset.management_form }</th> -->
+                            </tr>
+                          </thead>
+                          <tbody id="sort" class="formset option-formset" data-formset-prefix="questions" data-formset-type="inline">
+                            <!-- Option -->
+                            <tr class="formset-form sorting-row" data-formset-form-prefix="question">
+                              <!-- # -->
+                              <th class="formset-form-index text-center" scope=row>
+                                1
+                              </th>
+                              <!-- Option Label -->
+                              <td>
+                                <div> <!-- Has error conditional class removed -->
+                                  <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
+                                    <input type="text" class="form-control input-sm" placeholder="Example: Candidate 1" id="option-name-input" name="option-name-input" maxlength="200">
+                                  <!-- Error handling / input validation has been removed temporarily and would be placed here -->
+                                </div>
+                              </td>
+                              <!-- Delete Action -->
+                              <td class="formset-form-actions text-center">
+                                <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
+                                  <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                </button>
+                              </td>
+                            </tr>
+                            <!-- Option -->
+                            <tr class="formset-form sorting-row" data-formset-form-prefix="question">
+                              <!-- # -->
+                              <th class="formset-form-index text-center" scope=row>
+                                2
+                              </th>
+                              <!-- Option Label -->
+                              <td>
+                                <div> <!-- Has error conditional class removed -->
+                                    <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
+                                    <input type="text" class="form-control input-sm" placeholder="Example: Candidate 2" id="option-name-input" name="option-name-input" maxlength="200">
+                                    <!-- Error handling / input validation has been removed temporarily and would be placed here -->
+                                </div>
+                              </td>
+                              <!-- Delete Action -->
+                              <td class="formset-form-actions text-center">
+                                <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
+                                  <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                </button>
+                              </td>
+                            </tr>
+                            <!-- Option -->
+                            <tr class="formset-form sorting-row formset-form-empty hidden" data-formset-form-prefix="question">
+                              <!-- # -->
+                              <th class="formset-form-index text-center" scope=row>
+                                X
+                              </th>
+                              <!-- Option Label -->
+                              <td>
+                                <div> <!-- Has error conditional class removed -->
+                                    <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
+                                    <input type="text" class="form-control input-sm" placeholder="Example: Candidate X" id="option-name-input" name="option-name-input" maxlength="200">
+                                    <!-- Error handling / input validation has been removed temporarily and would be placed here -->
+                                </div>
+                              </td>
+                              <!-- Delete Action -->
+                              <td class="formset-form-actions text-center">
+                                <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
+                                  <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                </button>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                        <div class="clearfix">
+                          <button type="button" class="btn btn-primary formset-add" data-formset-prefix="questions">
+                            <i class="fa fa-plus-circle" aria-hidden="true"></i>
+                            Add Question Option
+                          </button>
+                        </div>
+                        <span id="question-input-help-block" class="help-block">
+                            <!-- Error handling / input validation has been removed temporarily and would be placed here -->
+                            Drag and drop to re-order options.
+                        </span>
+                      </div>
+                  </div>
+                </div>
+                <!-- Number of option selections -->
+                <div class="form-group">
+                  <label for="selections-input" class="col-sm-3 col-md-2 control-label">Number of Selections:</label> <!-- This text can be a template variable -->
+                  <div class="col-sm-9 col-md-10">
+                      <div class="row">
+                          <div class="col-xs-6">
+                            <label class="sr-only" for="minimum-input">Minimum</label>
+                            <input type="number" class="form-control" id="minimum-input" placeholder="Minimum" value="" name="minimum-input" min="0"> <!-- TODO: Max should be set to the number of options -->
+                            <!-- Error handling / input validation has been removed temporarily and would be placed here -->
+                          </div>
+                          <div class="col-xs-6">
+                            <label class="sr-only" for="maximum-input">Maximum</label>
+                            <input type="number" class="form-control" id="maximum-input" placeholder="Maximum" value="" name="maximum-input" min="1"> <!-- TODO: Max should be set to the number of options -->
+                            <!-- Error handling / input validation has been removed temporarily and would be placed here -->
+                          </div>
+                      </div>
+                      <span id="question-input-help-block" class="help-block">
+                        <!-- Error handling / input validation has been removed temporarily and would be placed here -->
+                        Minimum and maximum number of option selections that a voter can make for the specified question / statement.
+                        <!-- TODO: Alignment is potentially slightly too much to the left -->
+                      </span>
+                  </div>
+                </div>
+                <!-- Organisers -->
+                <div class="form-group">
+                  <label for="organisers-input" class="col-sm-3 col-md-2 control-label">Organisers:</label> <!-- This text can be a template variable -->
+                  <div class="col-sm-9 col-md-10">
+                    <div class="form-group">
+                        <table id="organisers-input-table" class="table table-hover">
+                          <thead>
+                            <tr>
+                              <th class="text-center">#</th>
+                              <th>Email</th>
+                              <th class="text-center">Actions</th>
+                              <!--Not sure what this does so disabling it: <th class="hidden">{ option_formset.management_form }</th> -->
+                            </tr>
+                          </thead>
+                          <tbody class="formset organiser-formset" data-formset-prefix="organisers" data-formset-type="inline">
+                            <!-- Organiser -->
+                            <tr class="formset-form sorting-row" data-formset-form-prefix="organiser">
+                              <th class="formset-form-index text-center" scope=row>
+                                <!-- # -->
+                                1
+                              </th>
+                              <td>
+                                <!-- Email -->
+                                <div> <!-- Has error conditional class removed -->
+                                  <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
+                                    <input type="text" class="form-control input-sm" placeholder="Example: organiser@example.com" id="organiser-email-input" name="organiser-email-input" value="{{ user_email }}" maxlength="255">
+                                  <!-- Error handling / input validation has been removed temporarily and would be placed here -->
+                                </div>
+                              </td>
+                              <td class="formset-form-actions text-center">
+                                <!-- Action -->
+                                <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
+                                  <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                </button>
+                              </td>
+                            </tr>
+                            <!-- Organiser -->
+                            <tr class="formset-form sorting-row" data-formset-form-prefix="question">
+                              <th class="formset-form-index text-center" scope=row>
+                                <!-- # -->
+                                2
+                              </th>
+                              <td>
+                                <!-- Email -->
+                                <div> <!-- Has error conditional class removed -->
+                                    <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
+                                    <input type="text" class="form-control input-sm" placeholder="Example: organiser@example.com" id="organiser-email-input" name="organiser-email-input" maxlength="255">
+                                    <!-- Error handling / input validation has been removed temporarily and would be placed here -->
+                                </div>
+                              </td>
+                              <td class="formset-form-actions text-center">
+                                <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
+                                  <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                </button>
+                              </td>
+                            </tr>
+                            <!-- Organiser -->
+                            <tr class="formset-form sorting-row formset-form-empty hidden" data-formset-form-prefix="question">
+                              <th class="formset-form-index text-center" scope=row>
+                                <!-- # -->
+                                X
+                              </th>
+                              <td>
+                                <!-- Email -->
+                                <div> <!-- Has error conditional class removed -->
+                                    <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
+                                    <input type="text" class="form-control input-sm" placeholder="Example: organiser@example.com" id="organiser-email-input" name="organiser-email-input" maxlength="255">
+                                    <!-- Error handling / input validation has been removed temporarily and would be placed here -->
+                                </div>
+                              </td>
+                              <td class="formset-form-actions text-center">
+                                <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
+                                  <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                </button>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                        <div class="clearfix">
+                          <button type="button" class="btn btn-primary formset-add" data-formset-prefix="organisers">
+                            <i class="fa fa-plus-circle" aria-hidden="true"></i>
+                            Add Organiser Email
+                          </button>
+                        </div>
+                        <span id="question-input-help-block" class="help-block">
+                            <!-- Error handling / input validation has been removed temporarily and would be placed here -->
+                            Drag and drop to re-order emails.
+                        </span>
+                      </div>
+                  </div>
+                </div>
+                <!-- Trustees -->
+                <div class="form-group">
+                  <label for="trustees-input" class="col-sm-3 col-md-2 control-label">Trustees:</label> <!-- This text can be a template variable -->
+                  <div class="col-sm-9 col-md-10">
+                    <div class="form-group">
+                        <table id="trustees-input-table" class="table table-hover">
+                          <thead>
+                            <tr>
+                              <th class="text-center">#</th>
+                              <th>Email</th>
+                              <th class="text-center">Actions</th>
+                              <!--Not sure what this does so disabling it: <th class="hidden">{ option_formset.management_form }</th> -->
+                            </tr>
+                          </thead>
+                          <tbody class="formset trustee-formset" data-formset-prefix="trustees" data-formset-type="inline">
+                            <!-- Trustee -->
+                            <tr class="formset-form sorting-row" data-formset-form-prefix="trustee">
+                              <th class="formset-form-index text-center" scope=row>
+                                <!-- # -->
+                                1
+                              </th>
+                              <td>
+                                <!-- Email -->
+                                <div> <!-- Has error conditional class removed -->
+                                  <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
+                                    <input type="text" class="form-control input-sm" placeholder="Example: trustee@example.com" id="trustee-email-input" name="trustee-email-input" value="{{ user_email }}" maxlength="255">
+                                  <!-- Error handling / input validation has been removed temporarily and would be placed here -->
+                                </div>
+                              </td>
+                              <td class="formset-form-actions text-center">
+                                <!-- Action -->
+                                <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
+                                  <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                </button>
+                              </td>
+                            </tr>
+                            <!-- Trustee -->
+                            <tr class="formset-form sorting-row" data-formset-form-prefix="trustee">
+                              <th class="formset-form-index text-center" scope=row>
+                                <!-- # -->
+                                2
+                              </th>
+                              <td>
+                                <!-- Email -->
+                                <div> <!-- Has error conditional class removed -->
+                                    <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
+                                    <input type="text" class="form-control input-sm" placeholder="Example: trustee@example.com" id="trustee-email-input" name="trustee-email-input" maxlength="255">
+                                    <!-- Error handling / input validation has been removed temporarily and would be placed here -->
+                                </div>
+                              </td>
+                              <td class="formset-form-actions text-center">
+                                <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
+                                  <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                </button>
+                              </td>
+                            </tr>
+                            <!-- Trustee -->
+                            <tr class="formset-form sorting-row formset-form-empty hidden" data-formset-form-prefix="trustee">
+                              <th class="formset-form-index text-center" scope=row>
+                                <!-- # -->
+                                X
+                              </th>
+                              <td>
+                                <!-- Email -->
+                                <div> <!-- Has error conditional class removed -->
+                                    <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
+                                    <input type="text" class="form-control input-sm" placeholder="Example: trustee@example.com" id="trustee-email-input" name="trustee-email-input" maxlength="255">
+                                    <!-- Error handling / input validation has been removed temporarily and would be placed here -->
+                                </div>
+                              </td>
+                              <td class="formset-form-actions text-center">
+                                <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
+                                  <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                </button>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                        <div class="clearfix">
+                          <button type="button" class="btn btn-primary formset-add" data-formset-prefix="trustees">
+                            <i class="fa fa-plus-circle" aria-hidden="true"></i>
+                            Add Trustee Email
+                          </button>
+                        </div>
+                        <span id="question-input-help-block" class="help-block">
+                            <!-- Error handling / input validation has been removed temporarily and would be placed here -->
+                            Drag and drop to re-order emails.
+                        </span>
+                      </div>
+                  </div>
+                </div>
+                <!-- Voters List -->
+                <div class="form-group">
+                  <label for="voters-list-input" class="col-sm-3 col-md-2 control-label">Voters List:</label> <!-- This text can be a template variable -->
+                  <div class="col-sm-9 col-md-10">
+                      <textarea class="form-control" id="voters-list-input" placeholder="alice@example.com, bob@example.com..." name="voters-list-input" rows="4"></textarea>
+                      <span id="voters-list-input-help-block" class="help-block">
+                        <!-- Error handling / input validation has been removed temporarily and would be placed here -->
+                        Manually enter email addresses separated with commas. Alternatively, you can also upload a CSV file:
+                        <!-- TODO: Alignment is potentially slightly too much to the left -->
+                      </span>
+                      <label for="files" class="btn btn-primary">
+                            Upload CSV
+                      </label>
+                      <input type="file" id="files" name="file" class="btn-info">
+                      <h4 id="result" class="hidden"></h4>
+                  </div>
+                </div>
+                <!-- reCAPTCHA -->
+                <div class="form-group">
+                  <label for="recaptcha-input" class="col-sm-3 col-md-2 control-label">reCAPTCHA:</label> <!-- This text can be a template variable -->
+                  <div class="col-sm-9 col-md-10">
+                      <div class="g-recaptcha" data-callback="recaptchaCallback" data-sitekey="{{ G_R_SITE_KEY }}"></div> <!-- Need to finish server implementation and import key from settings -->
+                      <span id="recaptcha-input-help-block" class="help-block">
+                        <!-- Error handling / input validation has been removed temporarily and would be placed here -->
+                        Tick the box to prove that you're not a robot.
+                        <!-- TODO: Alignment is potentially slightly too much to the left -->
+                      </span>
+                  </div>
+                </div>
+                <hr>
+                <input class="btn btn-success" type="submit" value="Create Event" id="submit-event-create" disabled/>
+                <input class="btn btn-danger" type="button" value="Cancel" onclick="location.href='{% url 'polls:index' %}'" />
+            </form>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}

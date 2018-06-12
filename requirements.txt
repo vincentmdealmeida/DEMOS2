@@ -1,0 +1,11 @@
+django==1.8.1
+django-allauth==0.22.0
+django-uuidfield  # you don't have to use uuids, but I choose to.
+django-bootstrap3  # allauth doesn't require this but again I chose to.
+django-celery
+django-crispy-forms
+django-simple-captcha
+django-nocaptcha-recaptcha
+django-recaptcha
+mysqlclient
+

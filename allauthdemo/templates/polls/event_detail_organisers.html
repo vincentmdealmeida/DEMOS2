@@ -1,0 +1,37 @@
+{% extends "polls/event_detail_base.html" %}
+{% load staticfiles %}
+{% load bootstrap3 %}
+
+{% block event_nav_organisers %}active{% endblock %}
+{% block event_content %}
+<h2>Event Organisers</h2>
+  {% if object.users_organisers.all %}
+    <ul class="list-group">
+      {% for user in object.users_organisers.all %}
+      <li class="list-group-item">{{ user.email }}</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No organisers for this Event.</p>
+  {% endif %}
+  <h2>Event Trustees</h2>
+  {% if object.users_trustees.all %}
+    <ul class="list-group">
+      {% for user in object.users_trustees.all %}
+      <li class="list-group-item">{{ user.email }}</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No trustees for this Event.</p>
+  {% endif %}
+  <h2>Voters</h2>
+  {% if object.voters.all %}
+    <ul class="list-group">
+      {% for voter in object.voters.all %}
+      <li class="list-group-item">{{ voter.email }}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+      <p>No voters for this Event.</p>
+    {% endif %}
+{% endblock %}

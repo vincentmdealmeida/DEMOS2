@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+
+<!--- Example code written by Bingsheng Zhang -->
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset="utf-8">
+    <title>Demos2</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<!-- Bootstrap core CSS -->
+	<link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css">
+	<!-- Optional theme -->
+	<link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap-theme.min.css">
+	<style type="text/css">
+	/* Sticky footer styles */
+	html,
+	body {
+  	height: 100%;
+  	/* The html and body elements cannot have any padding or margin. */
+	}
+	/* Wrapper for page content to push down footer */
+	#wrap {
+  	min-height: 100%;
+  	height: auto;
+  	/* Negative indent footer by its height */
+  	margin: 0 auto -60px;
+  	/* Pad bottom by footer height */
+  	padding: 0 0 60px;
+	}
+	</style>
+	<!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+    <![endif]-->
+</head>
+		
+<body>
+
+<!-- Wrap all page content here -->
+<div id="wrap">
+
+<div class="form-group">
+<input type="text" id="numa" name="A" placeholder="Message" class="form-control">
+</br>
+
+<input type="text" id="numc" name="C" placeholder="Key" class="form-control">
+</br>
+<button type="button" id="add" class="btn btn-success">Encrypt</button>
+</div>
+<input type="text" id="numb" name="B" placeholder="Ciphertext" class="form-control">
+</br>
+
+</br>
+
+
+<ul id="DecomList">
+
+</ul>
+
+</div>
+
+
+    <!-- Footer -->
+    <div id="footer">
+      <div class="container">
+        <p class="text-muted">Test trustee API</p>
+      </div>
+    </div>
+
+<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+<script src="https://code.jquery.com/jquery.js"></script>
+<!-- Bootstrap core JavaScript -->
+<script src="http://netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"></script>
+
+
+<!-- Crypto JS -->
+    <script type="text/javascript" src=./core/rand.js></script>
+    <script type="text/javascript" src=./core/rom_curve.js></script>
+    <script type="text/javascript" src=./core/rom_field.js></script>
+    <script type="text/javascript" src=./core/uint64.js></script>
+    <script type="text/javascript" src=./core/aes.js></script>
+    <script type="text/javascript" src=./core/big.js></script>
+    <script type="text/javascript" src=./core/gcm.js></script>
+    <script type="text/javascript" src=./core/hash256.js></script>
+    <script type="text/javascript" src=./core/hash384.js></script>
+    <script type="text/javascript" src=./core/hash512.js></script>
+    <script type="text/javascript" src=./core/sha3.js></script>
+    <script type="text/javascript" src=./core/newhope.js></script>
+    <script type="text/javascript" src=./core/nhs.js></script>
+    <script type="text/javascript" src=./core/fp.js></script>
+    <script type="text/javascript" src=./core/fp2.js></script>
+    <script type="text/javascript" src=./core/fp4.js></script>
+    <script type="text/javascript" src=./core/fp12.js></script>
+    <script type="text/javascript" src=./core/ff.js></script>
+    <script type="text/javascript" src=./core/rsa.js></script>
+    <script type="text/javascript" src=./core/ecp.js></script>
+    <script type="text/javascript" src=./core/ecp2.js></script>
+    <script type="text/javascript" src=./core/ecdh.js></script>
+    <script type="text/javascript" src=./core/pair.js></script>
+    <script type="text/javascript" src=./core/mpin.js></script>
+    <script type="text/javascript" src=./core/ctx.js></script>
+
+    <script type="text/javascript" src="demos2-booth.js"></script>
+
+
+</body>
+
+
+<script type="text/javascript">
+
+
+$(document).ready(function(){
+  $("#add").click(function(){
+
+    var params = gpGen(); 
+    var keys = keyGen(params);
+    console.log(keys.PK.toString());
+    console.log(keys.SK.toString());
+    var cipher = encrypt(params,keys.PK, 5);
+    var string_c1 = cipher.C1.toString();
+    console.log(cipher.C1.toString());
+    console.log(cipher.C2.toString());
+
+    //test decrypt
+
+    var message = decrypt(params, keys.SK, cipher);
+    console.log(message);
+
+    //test combine key
+    var k1 = keyGen(params);
+    var k2 = keyGen(params);
+    console.log(k1.PK.toString());
+    console.log(k2.PK.toString());
+    var PKs = new Array(k1.PK,k2.PK);
+    var pk = combine(PKs);
+    console.log(pk.PK.toString());   
+
+
+    //test add cipher
+    var c1 = encrypt(params,keys.PK, 3);
+    var c2 = encrypt(params,keys.PK, 4);
+
+    var cArray = new Array(c1,c2);
+    var S = add(cArray);
+    console.log(S.C1.toString());
+    console.log(S.C2.toString());
+    var msg = decrypt(params, keys.SK, S);
+    console.log(msg);
+
+
+    //test tally
+    var Tc = encrypt(params,pk.PK, 3);
+    var D1 = partDec(k1.SK, Tc);
+    var D2 = partDec(k2.SK, Tc);
+    var Ds = new Array(D1,D2);
+    var tar = tally(params, Ds, Tc);
+    console.log(tar);
+
+
+    //window.document.write("Testing ElGamal encryption"+ "<br>");
+    //window.document.write("C1: "+ string_c1 + "<br>");
+    //window.document.write("C1: "+ string_c1 + "<br>");
+
+ });
+});
+</script>
+
+
+
+
+</html>

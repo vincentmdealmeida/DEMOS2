@@ -1,0 +1,17 @@
+{% extends "bases/bootstrap-with-nav.html" %}
+{% load staticfiles %}
+{% load bootstrap3 %}
+
+{% block content %}
+
+<div class="container">
+ <h1>Create Poll for {{event.title}}</h1>
+ {% load crispy_forms_tags %}
+ <form method="post" action="" class="">
+    {% crispy question_form %}
+    <input class="btn btn-default" type="submit" value="Submit"/>
+</form>
+</div>
+
+
+{% endblock %}

@@ -1,0 +1,21 @@
+
+{% extends "bases/bootstrap-with-nav.html" %}
+{% load staticfiles %}
+
+{% block content %}
+
+ <div class="container">
+
+    <h1>{{ question.question_text }}</h1>
+
+    <ul>
+    {% for choice in question.choice_set.all %}
+        <li class="list-group-item">{{ choice.choice_text }} <span class="badge">{{ choice.votes }} vote{{ choice.votes|pluralize }}</span></li>
+    {% endfor %}
+    </ul>
+
+    <a href="{% url 'polls:detail' question.id %}">Vote again?</a>
+
+</div>
+
+{% endblock %}

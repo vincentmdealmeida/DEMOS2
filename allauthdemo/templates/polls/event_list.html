@@ -1,0 +1,57 @@
+
+{% extends "bases/bootstrap-with-nav.html" %}
+{% load staticfiles %}
+
+{% block content %}
+
+ <div class="container">
+    <div class="form-group">
+        <!-- Heading -->
+        <div class="col-xs-5 col-sm-3 col-md-2">
+            <h1>Events</h1>
+        </div>
+        <!-- Create Button -->
+        <div class="col-xs-7 col-sm-9 col-md-10 marginTopCreateButton">
+            <a href="{% url 'polls:create-event' %}" class="btn btn-primary" style="float:right">
+                  <span class="glyphicon glyphicon-plus"></span> Create New
+            </a>
+        </div>
+    </div>
+   {% if object_list %}
+       <div class="form-group">
+           <table id="trustees-input-table" class="table table-hover marginTopEventList">
+              <thead>
+                <tr>
+                    <th class="text-center">Event</th>
+                    <th class="text-center">Start Time</th>
+                    <th class="text-center">End Time</th>
+                    <th class="text-center">No. Polls</th>
+                    <th class="text-center">Edit</th>
+                    <!-- Could also add a delete column to easily remove an event -->
+                </tr>
+              </thead>
+              <tbody>
+                    {% for event in object_list %}
+                   <tr>
+                       <td class="text-center"><a href="{% url 'polls:view-event' event.id %}">{{ event.title }}</a></td>
+                       <td class="text-center">{{ event.start_time }}</td>
+                       <td class="text-center">{{ event.end_time }}</td>
+                       <td class="text-center">{{ event.polls.count }}</td>
+                       <td class="text-center">
+                           <a href="{% url 'polls:edit-event' event.id %}">
+                              <span class="btn btn-default glyphicon glyphicon-pencil"></span>
+                            </a>
+                       </td>
+                   </tr>
+                    {% endfor %}
+              </tbody>
+           </table>
+       </div>
+   {% else %}
+     <div class="col-xs-12 col-sm-12 col-md-12">
+        <h4>There are currently no events.</h4>
+    </div>
+   {% endif %}
+ </div>
+
+{% endblock %}

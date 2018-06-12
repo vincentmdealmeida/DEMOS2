@@ -1,0 +1,267 @@
+{% extends "bases/bootstrap.html" %}
+{% load staticfiles %}
+
+{% block tail_js %}
+<script>
+  Module = {};
+  Module.memoryInitializerPrefixURL = "{% static 'js/' %}";
+</script>
+<script src="//code.jquery.com/jquery-2.2.4.min.js"></script>
+<!-- <script>window.jQuery || document.write('<script src="js/jquery-1.10.1.min.js"><\/script>')</script> -->
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.10.6/moment.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.37/js/bootstrap-datetimepicker.min.js"></script>
+<script src='https://www.google.com/recaptcha/api.js'></script>
+    <script
+  src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"
+  integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU="
+  crossorigin="anonymous"></script>
+<script src="{% static 'js/papaparse.min.js' %}" type="text/javascript"></script>
+<script src="{% static 'js/create-event-poll.js' %}" type="text/javascript"></script>
+<script src="{% static 'js/encrypt.js' %}" type="text/javascript"></script>
+
+<script type="text/javascript" src="{% static 'js/core/rand.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/core/rom_curve.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/core/rom_field.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/core/uint64.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/core/aes.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/core/big.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/core/gcm.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/core/hash256.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/core/hash384.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/core/hash512.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/core/sha3.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/core/newhope.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/core/nhs.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/core/fp.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/core/fp2.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/core/fp4.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/core/fp12.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/core/ff.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/core/rsa.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/core/ecp.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/core/ecp2.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/core/ecdh.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/core/pair.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/core/mpin.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/core/ctx.js' %}"></script>
+
+<script type="text/javascript" src="{% static 'js/demos2-booth.js' %}"></script>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.0/jquery-ui.js" type="text/javascript"></script>
+
+{% block app_js %}
+
+<script type="text/javascript">
+
+
+  {% block app_js_vars %}
+  {% endblock %}
+
+  Module.memoryInitializerPrefixURL = "LOL";
+  var demosEncrypt = {
+
+  }
+
+  /*
+
+  Code written with "New function" comments have
+  been totally or mostly re-implemented by Thomas Smith
+
+
+  */
+
+  //new function
+  demosEncrypt.encryptAndSubmit = function() {
+    var ctx = new CTX("BN254CX"); //new context we can use
+    var n = new ctx.BIG();
+    var g1 = new ctx.ECP();
+    var g2 = new ctx.ECP2();
+
+    var param = $('#event-param').val();
+    //console.log(param); 
+
+    var tempParams = JSON.parse(param);
+    //copying the values 
+    n.copy(tempParams.n);
+    g1.copy(tempParams.g1);
+    g2.copy(tempParams.g2);
+
+    var params = {
+      n:n,
+      g1:g1,
+      g2:g2
+    }
+
+    var tempPK = JSON.parse($('#comb_pk').val()); 
+
+    var pk = new ctx.ECP(0);
+    pk.copy(tempPK.PK);
+    var answer = $('#poll-options').val();
+    console.log(answer);
+    var cipher = encrypt(params, pk, answer);   
+   
+    var c1Bytes = [];
+    cipher.C1.toBytes(c1Bytes); 
+    var c2Bytes = [];
+    cipher.C2.toBytes(c2Bytes);
+
+    $('#id_cipher_text_c1').val(c1Bytes.toString());
+    $('#id_cipher_text_c2').val(c2Bytes.toString());
+
+    $('#cipher-form').submit();
+  }
+
+
+  //new function
+  demosEncrypt.decryptCipher = function() {
+    var skString = $('#secret-key').val();
+    if (!skString) {
+      alert("Please enter your secret key");
+    }
+    else {
+      //rebuild our secret key
+      var ctx = new CTX("BN254CX");
+      var skBytes = skString.split(",");
+      var sk =new ctx.BIG.fromBytes(skBytes);
+
+      var inputs = $("form input[type=text]");
+      inputs.each(function() { //for each ciphertext to decrypt
+        var ciphertext = {
+          C1: new ctx.ECP(),
+          C2: new ctx.ECP()
+        }
+        var temp = JSON.parse($(this).val());
+        ciphertext.C1.copy(temp.C1);
+        ciphertext.C2.copy(temp.C2);
+        
+        var partial = partDec(sk, ciphertext);//returns an object containing an ECP()
+        
+        var bytes = [];
+        partial.D.toBytes(bytes);
+        $(this).val(bytes.toString());//submit in byte array form
+      })
+
+      $('input[type=submit]').prop("disabled", false);
+    }
+  }
+
+  //new function
+  demosEncrypt.generateKeys = function() {
+    parameter = $("#event-param").val();
+    var tempParams = JSON.parse(parameter);
+    //the full objects need to be initalised as per the library, then copy the values we need into it
+    //I follow Bingsheng's code as to what objects are used in the parameter object
+    var ctx = new CTX("BN254CX"); //new context we can use
+    var n = new ctx.BIG();
+    var g1 = new ctx.ECP();
+    var g2 = new ctx.ECP2();
+
+    //copying the values 
+    n.copy(tempParams.n);
+    g1.copy(tempParams.g1);
+    g2.copy(tempParams.g2);
+
+    var params = {
+      n:n,
+      g1:g1,
+      g2:g2
+    }
+
+    var PKbytes = [];
+    var SKbytes = [];
+
+    var keypair = keyGen(params);
+    keypair.PK.toBytes(PKbytes);
+    keypair.SK.toBytes(SKbytes);
+
+    $('input#public-key').val(PKbytes.toString());
+    $('input#secret-key').val(SKbytes.toString());
+
+    //mostly code from before here
+    var blob = new Blob([SKbytes.toString()], {type : 'text/plain'});
+
+    var dlBtn = $('a#download-btn');
+    var url = URL.createObjectURL(blob);
+    var fileName = $(dlBtn).attr("href", url);
+
+    $(dlBtn).attr("download", "sk-{% block sk-file-name %}{% endblock %}".replace(/[\W]/g, "-"));
+    $(dlBtn).attr("disabled", false);
+    $("#public-submit").attr("disabled", false);
+  }
+
+  //these other functions might not be used
+  //I don't think this is used
+  demosEncrypt.downloadSecretKey = function() {
+    var blob = new Blob([sk], {type : 'text/plain'});
+    var dlBtn = $('a#download-btn');
+    $(dlBtn).attr("disabled", true);
+  }
+
+  function getFormsetPrefix(id) {
+    id = id.replace(/(?:id_)?formset_/, ""); // strip generic part
+    return id.replace(/([A-Za-z0-9]+)[\w-]*/, "$1"); // return prefix
+  }
+
+  function setFormsetIndex(ele, prefix, index) {
+    ele = $(ele).find("div[id^='id_formset'], input[id^='id_formset']").each(function (i, el) {
+     var id = $(el).attr("id");
+     id = "id_formset_" + prefix + '-' + index + id.match(/-\w+$/);
+     $(el).attr("id", id);
+     if ($(el).is("input")) {
+       $(el).attr("name", id.replace(/^id_/, ""));
+     }
+   });
+  }
+
+  $('.formset').sortable({handle:".input-group-addon", items:".formset_object",
+    start: function(event, ui) {
+      ui.item.prevPos = ui.item.index();
+      console.log(ui.item.prevPos);
+    },
+    update: function(event, ui) {
+      ui.item.prevPos = null;
+    },
+    beforeStop: function(event, ui) {
+      $(ui.item).css("animation", "none"); // prevents firing of entry keyframe
+    }
+  });
+  //$('.glyphicon.glyphicon-trash').parent().hide();
+  $('.formset').find
+  $('.formset').on('click', '.input-group-addon', function() { // this makes the label a delete btn too :(
+    var ele = $(this).closest(".formset_object");
+    var prefix = $(this).closest(".formset_object").data("prefix") || getFormsetPrefix($(this).closest(".formset_object").find('input:first').attr("id"));
+    var current_total = parseInt($("#id_formset_" + prefix + "-TOTAL_FORMS").val());
+    if (current_total <= $("#id_formset_" + prefix + "-MIN_NUM_FORMS").val()) {
+      return; // don't allow removal of last element
+    }
+    ele.remove();
+    $("#id_formset_" + prefix + "-TOTAL_FORMS").val(current_total - 1);
+    $(".formset").sortable( "refresh" );
+    $(".formset").sortable( "refreshPositions" );
+  });
+  $('.add-another-btn').on('click',function() {
+    var new_formset_item = $(this).prevAll(".formset_object:first").clone();
+    var prefix = getFormsetPrefix(new_formset_item.find("input:first").attr("id"));
+    var current_total = parseInt($("#id_formset_" + prefix + "-TOTAL_FORMS").val());
+    if (current_total >= $("#id_formset_" + prefix + "-MAX_NUM_FORMS").val()) {
+      return; // don't allow more than max forms
+    }
+    new_formset_item.data("prefix", prefix);
+    $(this).before(new_formset_item);
+    new_formset_item.find("input").val("");
+    setFormsetIndex(new_formset_item, prefix, parseInt($("#id_formset_" + prefix + "-TOTAL_FORMS").val()));
+    $("#id_formset_" + prefix + "-TOTAL_FORMS").val(parseInt($("#id_formset_" + prefix + "-TOTAL_FORMS").val()) +1);
+    $(".formset").sortable( "refresh" );
+    $(".formset").sortable( "refreshPositions" );
+  });
+
+  // rudimentary accordion error handling
+  $('.has-error').closest('.panel').find('.panel-heading').addClass("error");
+  $('.alert.alert-block.alert-danger').closest('.panel').find('.panel-heading').addClass("error");
+</script>
+
+{% endblock %}
+
+{% endblock %}

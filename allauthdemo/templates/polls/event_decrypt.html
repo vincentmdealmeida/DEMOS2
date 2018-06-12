@@ -1,0 +1,32 @@
+{% extends "bases/bootstrap-with-nav.html" %}
+{% load staticfiles %}
+{% load bootstrap3 %}
+{% comment %} is it safe really? {% endcomment %}
+{% block sk-file-name %}{{ event.title|safe }}{% endblock %}
+
+{% block content %}
+
+<div class="container">
+  <h1>Event: {{event.title}}</h1>
+  <h2>Trustee Decrypt</h2>
+  <div class="panel panel-default">
+    <div class="panel-heading">Secret Key</div>
+    <div class="panel panel-body">
+      <input id="secret-key" class="textinput textInput form-control" type="text"></input>
+      <p>Use your secret key to generate a decrypted cipher</p>
+      <button id="keygen-btn" onclick="demosEncrypt.decryptCipher()" class="btn btn-default">Decrypt</button>
+    </div>
+  </div>
+  <div class="panel panel-default">
+    <div class="panel-heading">Encrypted Ciphers</div>
+    <div class="panel panel-body">
+      {% load crispy_forms_tags %}
+      <form method="post" action="" class="">
+         {% crispy formset helper %}
+         <input class="btn btn-default" type="submit" value="Submit" disabled>
+     </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

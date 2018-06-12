@@ -1,0 +1,34 @@
+{% extends "bases/bootstrap-with-nav.html" %}
+{% load staticfiles %}
+{% load bootstrap3 %}
+{% comment %} is it safe really? {% endcomment %}
+{% block sk-file-name %}{{ event.title|safe }}{% endblock %}
+
+{% block content %}
+
+<div class="container">
+  <h1>Event: {{event.title}}</h1>
+  <h2>Trustee Setup</h2>
+  <div class="panel panel-default">
+    <div class="panel-heading">Public Key</div>
+    <div class="panel panel-body">
+      {% load crispy_forms_tags %}
+      <form method="post" action="" class="">
+         {% crispy form %}
+         <input id="public-submit" class="btn btn-default" type="submit" value="Submit" disabled="true"/>
+     </form>
+    </div>
+  </div>
+  <div class="panel panel-default">
+    <div class="panel-heading">Secret Key</div>
+    <div class="panel panel-body">
+      <input id="secret-key" class="textinput textInput form-control" type="text"></input>
+      <input id="event-param" type="text" value="{{event.EID}}" hidden></input>
+      <p>Make a backup of this secret key before submitting your public key. This can NOT be recalculated if forgotten!</p>
+      <button id="keygen-btn" onclick="demosEncrypt.generateKeys()" class="btn btn-default">Generate</button>
+      <a id="download-btn" role="button" href="#" class="btn btn-default" disabled>Download</a>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

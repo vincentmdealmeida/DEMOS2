@@ -1,0 +1,5 @@
+celery -A allauthdemo worker -l info //start celery worker from parent dir of allauthdemo
+
+python manage.py runserver //start django server
+
+node index.js //start node server

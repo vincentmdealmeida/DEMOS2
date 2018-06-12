@@ -1,0 +1,16 @@
+{% extends "bases/bootstrap-with-nav.html" %}
+{% load staticfiles %}
+{% load bootstrap3 %}
+
+{% block content %}
+
+<div class="container">
+  <h1>{{ form_title }}</h1>
+  {% load crispy_forms_tags %}
+  <form method="post" action="" {{ form_attributes }} class="">
+    {% crispy form %}
+    <input class="btn btn-default" type="submit" value="Submit"/>
+  </form>
+</div>
+
+{% endblock %}

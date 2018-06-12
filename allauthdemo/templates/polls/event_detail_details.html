@@ -1,0 +1,13 @@
+{% extends "polls/event_detail_base.html" %}
+{% load staticfiles %}
+{% load bootstrap3 %}
+
+{% block event_nav_details %}active{% endblock %}
+{% block event_content %}
+<h2>Event Details</h2>
+  <span>Ready/Prepared: {{ event.prepared }}</span>
+  <br />
+  <span>Start Time: {{ event.start_time }}</span>
+  <br />
+  <span>End Time: {{ event.end_time }}</span>
+{% endblock %}

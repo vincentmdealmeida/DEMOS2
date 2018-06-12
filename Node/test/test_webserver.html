@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+<script src="https://code.jquery.com/jquery.js"></script>
+<!-- Bootstrap core JavaScript -->
+<script src="http://netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"></script>
+
+</head>
+<body>
+
+
+
+<!-- Crypto JS -->
+    <script type="text/javascript" src=./core/rand.js></script>
+    <script type="text/javascript" src=./core/rom_curve.js></script>
+    <script type="text/javascript" src=./core/rom_field.js></script>
+    <script type="text/javascript" src=./core/uint64.js></script>
+    <script type="text/javascript" src=./core/aes.js></script>
+    <script type="text/javascript" src=./core/big.js></script>
+    <script type="text/javascript" src=./core/gcm.js></script>
+    <script type="text/javascript" src=./core/hash256.js></script>
+    <script type="text/javascript" src=./core/hash384.js></script>
+    <script type="text/javascript" src=./core/hash512.js></script>
+    <script type="text/javascript" src=./core/sha3.js></script>
+    <script type="text/javascript" src=./core/newhope.js></script>
+    <script type="text/javascript" src=./core/nhs.js></script>
+    <script type="text/javascript" src=./core/fp.js></script>
+    <script type="text/javascript" src=./core/fp2.js></script>
+    <script type="text/javascript" src=./core/fp4.js></script>
+    <script type="text/javascript" src=./core/fp12.js></script>
+    <script type="text/javascript" src=./core/ff.js></script>
+    <script type="text/javascript" src=./core/rsa.js></script>
+    <script type="text/javascript" src=./core/ecp.js></script>
+    <script type="text/javascript" src=./core/ecp2.js></script>
+    <script type="text/javascript" src=./core/ecdh.js></script>
+    <script type="text/javascript" src=./core/pair.js></script>
+    <script type="text/javascript" src=./core/mpin.js></script>
+    <script type="text/javascript" src=./core/ctx.js></script>
+
+    <script type="text/javascript" src="demos2-booth.js"></script>
+
+<h1>DEMOS2 Node.js Server testing page</h1>
+
+<button type="button" id="gpGen" class="btn">gpGen</button>
+<p id="gpGenLocal">GPGen Local results</p>
+<p id="gpGenServer">GPGen Server results</p>
+
+<button type="button" id="addec" class="btn">addec</button>
+<p id="addecLocal">addec Local results</p>
+<p id="addecServer">addec Server results</p>
+<p id="addecResult">addec comparison results</p>
+
+
+<button type="button" id="combpk" class="btn">combpk</button>
+<p id="combpkLocal">combpk Local results</p>
+<p id="combpkServer">combpk Server results</p>
+<p id="combpkResult">compk comparison results</p>
+
+
+<button type="button" id="combpkOne" class="btn">combpk (one key)</button>
+<p id="combpkLocalOne">combpk Local results</p>
+<p id="combpkServerOne">combpk Server results</p>
+<p id="combpkResultOne">compk comparison results</p>
+
+<button type="button" id="tally" class="btn">tally</button>
+<p id="tallyLocal">tally Local results</p>
+<p id="tallyServer">tally Server results</p>
+<p id="tallyResult">compk comparison results</p>
+
+
+<script>
+$(document).ready(function(){
+
+	$("#gpGen").click(function(){
+
+		var xhttp = new XMLHttpRequest();
+		xhttp.onreadystatechange = function() {
+			if (this.readyState == 4 && this.status == 200) {
+			  document.getElementById("gpGenServer").innerHTML = this.responseText;
+
+			  var params = gpGen();
+			  document.getElementById("gpGenLocal").innerHTML = JSON.stringify(params);
+			}
+		};
+		xhttp.open("GET", "/param", true);
+		xhttp.send();
+	})
+
+	var params = gpGen(); 
+    var keys = keyGen(params);
+
+    //encrypt number 5
+    var cipher = encrypt(params,keys.PK, 5);
+
+    //test decrypt
+    var message = decrypt(params, keys.SK, cipher);
+
+
+	$("#addec").click(function(){
+		
+		var c1 = encrypt(params,keys.PK, 3);
+	    var c2 = encrypt(params,keys.PK, 4);
+	    var cArray = new Array(c1,c2);
+
+	    var bytes = [];
+	    var queryparams = "?number=2"
+		queryparams += "&C1=";
+		c1.C1.toBytes(bytes);
+		queryparams += bytes.toString();
+
+		queryparams += "&C2=";
+		c1.C2.toBytes(bytes);
+		queryparams += bytes.toString();
+
+		queryparams += '&C1=';
+		c2.C1.toBytes(bytes);
+		queryparams += bytes.toString();
+
+		queryparams += '&C2=';
+		c2.C2.toBytes(bytes);
+		queryparams += bytes.toString();
+
+		var xhttp = new XMLHttpRequest();
+		xhttp.onreadystatechange = function() {
+
+
+			if (this.readyState == 4 && this.status == 200) {
+			    
+			    var localAdd = add(cArray);
+			    var localM = decrypt(params, keys.SK, localAdd);
+
+			    console.log(localM);
+		  		document.getElementById("addecLocal").innerHTML = JSON.stringify(localAdd);
+
+
+		  		console.log("Request: /addec"+queryparams);
+		  		document.getElementById("addecServer").innerHTML = this.responseText;
+
+		  		//build object from server
+		  		var temp = JSON.parse(this.responseText);
+
+		  		//the values need to be copied in otherwise decryption doesn't work
+		  		var ctx = new CTX("BN254CX");  
+		        var s1=new ctx.ECP();
+		        var s2=new ctx.ECP();
+		        //copy the first cipher
+		        s1.copy(temp.C1);
+		        s2.copy(temp.C2);
+		  		var serverAdd = {
+	  			       C1:s1,
+	  			       C2:s2
+		  		}
+		  		
+		  		var serverM = decrypt(params, keys.SK, serverAdd);
+		  		console.log(serverM);
+		
+		  		document.getElementById("addecResult").innerHTML = "Local results: " + localM.M + ", Server results: " + serverM.M + "\n JSON string match: " + (JSON.stringify(localAdd) == this.responseText);
+
+			}
+		};
+		xhttp.open("GET", "/addec"+queryparams, true);
+		xhttp.send();
+	})
+
+	$("#combpk").click(function(){
+
+		var k1 = keyGen(params);
+		var k2 = keyGen(params);
+
+	    var bytes = [];
+	    var queryparams = "?number=2";
+		queryparams += "&PK=";
+		k1.PK.toBytes(bytes);
+		queryparams += bytes.toString();
+
+		queryparams += "&PK=";
+		k2.PK.toBytes(bytes);
+		queryparams += bytes.toString();
+		
+		console.log(queryparams);
+		var xhttp = new XMLHttpRequest();
+		xhttp.onreadystatechange = function() {
+			if (this.readyState == 4 && this.status == 200) {
+				//test combine key
+				
+
+				var PKs = new Array(k1.PK,k2.PK);
+				var pk = combine(PKs); 
+
+				document.getElementById("combpkServer").innerHTML = this.responseText;
+
+				document.getElementById("combpkLocal").innerHTML = JSON.stringify(pk);
+
+				var match = (this.responseText == JSON.stringify(pk));
+				document.getElementById("combpkResult").innerHTML = "Matching strings: " + match;
+			}
+		};
+		xhttp.open("GET", "/cmpkstring"+queryparams, true);
+		xhttp.send();
+	})
+
+	$("#combpkOne").click(function(){
+
+		var k1 = keyGen(params);
+
+	    var bytes = [];
+	    var queryparams = "?number=1";
+		queryparams += "&PK=";
+		k1.PK.toBytes(bytes);
+		queryparams += bytes.toString();
+
+		console.log(queryparams);
+		var xhttp = new XMLHttpRequest();
+		xhttp.onreadystatechange = function() {
+			if (this.readyState == 4 && this.status == 200) {
+				//test combine key
+				
+
+				var PKs = new Array(k1.PK);
+				var pk = combine(PKs); 
+
+				document.getElementById("combpkServerOne").innerHTML = this.responseText;
+
+				document.getElementById("combpkLocalOne").innerHTML = JSON.stringify(pk);
+
+				var match = (this.responseText == JSON.stringify(pk));
+				document.getElementById("combpkResultOne").innerHTML = "Matching strings: " + match;
+			}
+		};
+		xhttp.open("GET", "/cmpkstring"+queryparams, true);
+		xhttp.send();
+	})
+
+	$("#tally").click(function(){
+
+		//combine some keys first to test tally
+	    var k1 = keyGen(params);
+	    var k2 = keyGen(params);
+	    var PKs = new Array(k1.PK,k2.PK);
+	    var pk = combine(PKs);
+
+	    var Tc = encrypt(params,pk.PK, 3);
+	    var D1 = partDec(k1.SK, Tc);
+	    var D2 = partDec(k2.SK, Tc);
+	    var Ds = new Array(D1,D2);
+
+	    var queryparams = "?number=2";
+		queryparams += "&param=";//JSON format
+		queryparams += JSON.stringify(params);
+
+		queryparams +="&decs=";//will be in byte array format
+		var bytes = [];
+		D1.D.toBytes(bytes);
+		queryparams += bytes.toString();
+		queryparams +="&decs=";
+		D2.D.toBytes(bytes);
+		queryparams += bytes.toString();
+
+		queryparams +="&cipher=";//JSON, since it came from the server before
+		queryparams += JSON.stringify(Tc);
+
+		console.log(queryparams);
+		var xhttp = new XMLHttpRequest();
+		xhttp.onreadystatechange = function() {
+			if (this.readyState == 4 && this.status == 200) {
+				//test tally results
+	
+			    var tar = tally(params, Ds, Tc);
+
+				document.getElementById("tallyServer").innerHTML = this.responseText;
+
+				document.getElementById("tallyLocal").innerHTML = JSON.stringify(tar);
+
+				var match = (this.responseText == JSON.stringify(tar));
+				document.getElementById("tallyResult").innerHTML = "Matching strings: " + match;
+			}
+		};
+		xhttp.open("GET", "/tally"+queryparams, true);
+		xhttp.send();
+	})
+});
+</script>
+
+</body>
+</html>

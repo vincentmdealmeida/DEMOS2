@@ -1,0 +1,39 @@
+{% extends "bases/bootstrap-with-nav.html" %}
+{% load staticfiles %}
+{% load bootstrap3 %}
+
+{% block content %}
+
+<div class="container">
+  <a href="{% url 'polls:index' %}"><< Back to Events List</a>
+  <br/>
+  <h1>Event: {{object.title}}</h1>
+  <p>By {{object.users_organisers.all}}</p>
+  <ul class="nav nav-tabs">
+    <li class="{% block event_nav_details %}{% endblock %}">
+      <a href="{% url 'polls:view-event' event.id %}">Details</a>
+    </li>
+    <li class="{% block event_nav_polls %}{% endblock %}">
+      <a href="{% url 'polls:event-polls' event.id %}">Polls</a>
+    </li>
+    <li class="{% block event_nav_organisers %}{% endblock %}">
+      <a href="{% url 'polls:event-organisers' event.id %}">Organisers</a>
+    </li>
+    {% if event.prepared == False and is_trustee %}
+      <li class="">
+        <a href="{% url 'polls:prepare-event' event.id %}">Prepare Event</a>
+      </li>
+    {% endif %}
+    {% if is_organiser %}
+      <li class="">
+        <a href="{% url 'polls:edit-event' event.id %}"><span class="fa fa-pencil"></span> Edit Event</a>
+      </li>
+      <li class="{% block event_nav_launch %}{% endblock %}">
+        <a href="{% url 'polls:launch-event' event.id %}">Launch Event</a>
+      </li>
+    {% endif %}
+  </ul>
+  {% block event_content %}{% endblock %}
+ </div>
+
+{% endblock %}
