@@ -1,3 +1,111 @@
+// Form submission and validation
+var submitBtn = $("#submit-event-create");
+var dateRegex = /^[0-9]{4}-(((0[13578]|(10|12))-(0[1-9]|[1-2][0-9]|3[0-1]))|(02-(0[1-9]|[1-2][0-9]))|((0[469]|11)-(0[1-9]|[1-2][0-9]|30)))\s[0-9]{2}:[0-9]{2}\s\+[0-9]{2}:[0-9]{2}$/;
+var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+var reCaptchaValid = false;
+
+$("#election-form").submit(function(e) {
+    // Intercept submission of form and temporarily suspend it
+    e.preventDefault();
+    var form = this;
+
+    // Get a reference to the submit button
+    submitBtn.prop('disabled', true);
+    submitBtn.val('Please wait...');
+
+    // Disable the cancel button during validation
+    var cancelBtn = $("#cancel-event-create");
+    cancelBtn.prop('disabled', true);
+
+    // Perform input validation
+    var formDataValid = isFormValid();
+
+    if( formDataValid === true ) {
+        form.submit();
+    } else {
+        submitBtn.val('Errors Found');
+        cancelBtn.removeAttr('disabled');
+    }
+});
+
+function isFormValid() {
+    var nameValid = isNameValid();
+    var slugValid = isSlugValid();
+    var voteStartValid = isVoteStartValid();
+    var voteEndValid = isVoteEndValid();
+    var pollOptsValid = arePollsAndOptsValid();
+    var minSelectionValid = isMinSelectionValid();
+    var maxSelectionValid = isMaxSelectionValid();
+    var organisersEmailsValid = areOrganisersEmailsValid();
+    var trusteesEmailsValid = areTrusteesEmailsValid();
+    var votersListValid = isVotersListValid();
+    var reCaptchaValid = isReCaptchaStillValid();
+
+    return nameValid && slugValid && voteStartValid && voteEndValid
+            && pollOptsValid && minSelectionValid && maxSelectionValid
+            && organisersEmailsValid && trusteesEmailsValid && votersListValid
+            && reCaptchaValid;
+}
+
+function isNameValid() {
+    // Based on a list of names supplied
+    return true;
+}
+
+function isSlugValid() {
+    return true;
+}
+
+function isVoteStartValid() {
+    var start_date_time = $('#vote-start-input').val();
+    return isDateValid(start_date_time);
+}
+
+function isVoteEndValid() {
+    var end_date_time = $('#vote-end-input').val();
+    return isDateValid(end_date_time);
+}
+
+function isDateValid(date_time) {
+    return dateRegex.test(date_time);
+}
+
+function arePollsAndOptsValid() {
+    // Future validation could be added here
+    return true;
+}
+
+function isMinSelectionValid() {
+    return true;
+}
+
+function isMaxSelectionValid() {
+    return true;
+}
+
+function areOrganisersEmailsValid() {
+    return true;
+}
+
+function areTrusteesEmailsValid() {
+    return true;
+}
+
+function isVotersListValid() {
+    return true;
+}
+
+function isReCaptchaStillValid() {
+    return true;
+}
+
+$('.input-control').on('input', function(e) {
+    if(reCaptchaValid === true) {
+        submitBtn.val('Create Event');
+        submitBtn.removeAttr('disabled');
+    }
+});
+
 // File handling
 
 function processFileChange(event) {
@@ -55,11 +163,14 @@ document.getElementById('files').addEventListener('change', processFileChange, f
 // reCAPTCHA
 
 function reCVerificationCallback() {
-    $('#submit-event-create').removeAttr('disabled');
+    // TODO: call isFormValid before doing this and highlighting errors if any found
+    reCaptchaValid = true;
+    submitBtn.removeAttr('disabled');
 }
 
 function reCExpiredCallback() {
-    $('#submit-event-create').prop('disabled', true);
+    reCaptchaValid = false;
+    submitBtn.prop('disabled', true);
 }
 
 // Slug field.
@@ -128,6 +239,7 @@ $('#vote-start-input, #vote-end-input').parent('.date').datetimepicker({
     },
     minDate: moment().startOf('day'),
     useCurrent: false,
+    locale: moment.utc()
 });
 
 // Form management and Sortable rows
@@ -137,18 +249,6 @@ function update(event, ui) {
     var formset = $('.formset[data-formset-prefix="' + formsetPrefix + '"]');
     updateFormset(formset);
 }
-
-/*$('#options-input-table').rowSorter({
-	"handler" : null, // drag handler selector (default: null)
-	"tbody" : true, // True if you want to sort only tbody > tr. (default: true)
-	"tableClass" : "sorting-table", // This is added to the table during sorting
-	"dragClass": "sorting-row", // dragging row's class name (default: "sorting-row").
-	"stickTopRows": 0, // count of top sticky rows (default: 0)
-	"stickBottomRows": 0, // count of bottom sticky rows (default: 0)
-	"onDragStart": dragStart, // (default: null)
-	"onDragEnd": dragEnd, // (default: null)
-	"onDrop": drop // (default: null)
-});*/
 
 $("#options-input-table, #organisers-input-table, #trustees-input-table").sortable({
     items: "tr",
