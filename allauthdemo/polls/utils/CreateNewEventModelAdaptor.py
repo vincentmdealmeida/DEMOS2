@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from django.utils.dateparse import parse_datetime
+
 from allauthdemo.polls.models import Event
 from allauthdemo.polls.models import Poll
 from allauthdemo.polls.models import PollOption
@@ -54,11 +56,29 @@ class CreateNewEventModelAdaptor:
         self.identifier = self.form_data.pop('identifier-input')[0]
 
         # Extract start and end times as string and convert to datetime
+        # The UTC offset comes with a colon i.e. '+01:00' which needs to be removed
         starts_at = self.form_data.pop('vote-start-input')[0]
-        self.starts_at = datetime.strptime(starts_at, '%Y-%m-%d %H:%M')
+        starts_at_offset_index = starts_at.find('+')
+
+        if starts_at_offset_index != -1:
+            starts_at_time = starts_at[0: starts_at_offset_index-1].replace(' ', 'T')
+            starts_at_offset = starts_at[starts_at_offset_index:].replace(':', '')
+            starts_at = starts_at_time + starts_at_offset
+            self.starts_at = parse_datetime(starts_at)
+        else:
+            self.starts_at = datetime.strptime(starts_at, '%Y-%m-%d %H:%M')
+
 
         ends_at = self.form_data.pop('vote-end-input')[0]
-        self.ends_at = datetime.strptime(ends_at, '%Y-%m-%d %H:%M')
+        ends_at_offset_index = ends_at.find('+')
+
+        if ends_at_offset_index != -1:
+            ends_at_time = ends_at[0:ends_at_offset_index-1].replace(' ', 'T')
+            ends_at_offset = ends_at[ends_at_offset_index:].replace(':', '')
+            ends_at = ends_at_time + ends_at_offset
+            self.ends_at = parse_datetime(ends_at)
+        else:
+            self.ends_at = datetime.strptime(ends_at, '%Y-%m-%d %H:%M')
 
         # Extract the list of organisers
         organisers_list = self.form_data.pop('organiser-email-input')

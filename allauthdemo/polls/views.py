@@ -302,7 +302,7 @@ def create_event(request):
         # TODO: Based on whether validation was successful within update model and whether
         # TODO: data was actually persisted, either perform a redirect (success) or flag an error
 
-        return HttpResponseRedirect("/event")
+        return HttpResponseRedirect("/event/")
     elif request.method == "GET":
         #form = EventForm()
         #organiser_formset = OrganiserFormSet(prefix="formset_organiser", initial=[{'email': request.user.email }])
