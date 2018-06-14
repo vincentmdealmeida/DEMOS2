@@ -1,8 +1,14 @@
 // Form submission and validation
 var submitBtn = $("#submit-event-create");
-var dateRegex = /^[0-9]{4}-(((0[13578]|(10|12))-(0[1-9]|[1-2][0-9]|3[0-1]))|(02-(0[1-9]|[1-2][0-9]))|((0[469]|11)-(0[1-9]|[1-2][0-9]|30)))\s[0-9]{2}:[0-9]{2}\s\+[0-9]{2}:[0-9]{2}$/;
+var submitBtnLabel = "Create Event";
+var submitBtnWaitLabel = "Please wait...";
+var submitBtnErrLabel = "Errors Found";
+var dateRegex = /^[0-9]{4}-(((0[13578]|(10|12))-(0[1-9]|[1-2][0-9]|3[0-1]))|(02-(0[1-9]|[1-2][0-9]))|((0[469]|11)-(0[1-9]|[1-2][0-9]|30)))\s[0-9]?[0-9]:[0-9]{2}\s\+[0-9]{2}:[0-9]{2}$/;
 var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 var reCaptchaValid = false;
+var generalErrorBlock = document.getElementById('all-errors-help-block');
+
+var errors = [];
 
 $("#election-form").submit(function(e) {
     // Intercept submission of form and temporarily suspend it
@@ -11,7 +17,7 @@ $("#election-form").submit(function(e) {
 
     // Get a reference to the submit button
     submitBtn.prop('disabled', true);
-    submitBtn.val('Please wait...');
+    submitBtn.val(submitBtnWaitLabel);
 
     // Disable the cancel button during validation
     var cancelBtn = $("#cancel-event-create");
@@ -21,90 +27,574 @@ $("#election-form").submit(function(e) {
     var formDataValid = isFormValid();
 
     if( formDataValid === true ) {
+        clearErrors();
         form.submit();
     } else {
-        submitBtn.val('Errors Found');
+        submitBtn.val(submitBtnErrLabel);
         cancelBtn.removeAttr('disabled');
+        highlightErrors();
     }
 });
+
+function validateForm() {
+    var formDataValid = isFormValid();
+
+    if( formDataValid === true ) {
+        clearErrors();
+        submitBtn.removeAttr('disabled');
+        submitBtn.val(submitBtnLabel);
+    } else {
+        submitBtn.val(submitBtnErrLabel);
+        highlightErrors();
+    }
+}
 
 function isFormValid() {
     var nameValid = isNameValid();
     var slugValid = isSlugValid();
     var voteStartValid = isVoteStartValid();
     var voteEndValid = isVoteEndValid();
-    var pollOptsValid = arePollsAndOptsValid();
-    var minSelectionValid = isMinSelectionValid();
-    var maxSelectionValid = isMaxSelectionValid();
+    var pollOptsValid = isPollAndOptsValid();
     var organisersEmailsValid = areOrganisersEmailsValid();
     var trusteesEmailsValid = areTrusteesEmailsValid();
     var votersListValid = isVotersListValid();
-    var reCaptchaValid = isReCaptchaStillValid();
 
-    return nameValid && slugValid && voteStartValid && voteEndValid
-            && pollOptsValid && minSelectionValid && maxSelectionValid
-            && organisersEmailsValid && trusteesEmailsValid && votersListValid
-            && reCaptchaValid;
+    return nameValid && slugValid && voteStartValid && voteEndValid && pollOptsValid
+        && organisersEmailsValid && trusteesEmailsValid && votersListValid;
+}
+
+function validateFormField(validationFn, helpBlockId) {
+    var valid = validationFn();
+
+    if(valid === false) {
+        highlightError(helpBlockId);
+    } else {
+        clearError(helpBlockId);
+
+        if(reCaptchaValid === true) {
+            if(submitBtn.val() === submitBtnErrLabel) {
+                clearErrors();
+            }
+
+            submitBtn.removeAttr('disabled');
+            submitBtn.val(submitBtnLabel);
+        }
+    }
 }
 
 function isNameValid() {
-    // Based on a list of names supplied
-    return true;
+    // Based on a list of names supplied from the create_event html template
+    if(events_list !== undefined) {
+        var valid = true;
+        var event_name = $('#name-input').val();
+
+        if(event_name === '') {
+            checkAndAddError({
+                error: "The event name field is blank.",
+                helpBlockId: "name-input-error-block"
+            });
+
+            return false;
+        }
+
+        for(var i = 0; i < events_list.length; i++) {
+            var name = events_list[i].title;
+
+            if(name === event_name) {
+                valid = false;
+
+                // We need to flag this error to the user by generating an error that's
+                // later rendered
+                checkAndAddError({
+                    error: "The event name '" + event_name + "' is already in use.",
+                    helpBlockId: "name-input-error-block"
+                });
+            }
+        }
+
+        return valid;
+    } else {
+        // Can't perform validation
+        return true;
+    }
 }
+
+$('#name-input').on('input', function (e) { // Validation performed with every keystroke
+    validateFormField(isNameValid, "name-input-error-block");
+});
 
 function isSlugValid() {
-    return true;
+    // Based on a list of identifiers supplied from the create_event html template
+    if(events_list !== undefined) {
+        var valid = true;
+        var event_slug = $('#identifier-input').val();
+
+        if(event_slug === '') {
+            checkAndAddError({
+                error: "The event slug field is blank.",
+                helpBlockId: "identifier-input-error-block"
+            });
+
+            return false;
+        }
+
+        for(var i = 0; i < events_list.length; i++) {
+            var slug = events_list[i].slug;
+
+            if(slug === event_slug) {
+                valid = false;
+
+                // We need to flag this error to the user by generating an error that's
+                // later rendered
+                checkAndAddError({
+                    error: "The event slug '" + event_slug + "' is already in use.",
+                    helpBlockId: "identifier-input-error-block"
+                });
+            }
+        }
+
+        return valid;
+    } else {
+        // Can't perform validation
+        return true;
+    }
 }
 
+$('#identifier-input').on('input', function(e) {
+    validateFormField(isSlugValid, "identifier-input-error-block");
+});
+
 function isVoteStartValid() {
+    var helpBlockId = "vote-start-input-error-block";
     var start_date_time = $('#vote-start-input').val();
-    return isDateValid(start_date_time);
+    var valid = isDateValid(start_date_time);
+
+    if(valid === false) {
+        checkAndAddError({
+            error: "The voting start date and time format is invalid.",
+            helpBlockId: helpBlockId
+        })
+    } else {
+        clearError(helpBlockId);
+    }
+
+    return valid;
 }
+
+$('#vote-start-input').change(function(e) {
+    validateFormField(isVoteStartValid, "vote-start-input-error-block");
+});
+
+$( "#vote-start-input" ).click(function() {
+  $( "#vote-start-input" ).change();
+});
 
 function isVoteEndValid() {
     var end_date_time = $('#vote-end-input').val();
-    return isDateValid(end_date_time);
+    var valid = isDateValid(end_date_time);
+
+    if(valid === false) {
+        checkAndAddError({
+            error: "The voting end date and time format is invalid.",
+            helpBlockId: "vote-end-input-error-block"
+        })
+    }
+
+    return valid;
 }
+
+$('#vote-end-input').change(function(e) {
+    validateFormField(isVoteEndValid, "vote-end-input-error-block");
+});
+
+$( "#vote-end-input" ).click(function() {
+  $( "#vote-end-input" ).change();
+});
 
 function isDateValid(date_time) {
     return dateRegex.test(date_time);
 }
 
-function arePollsAndOptsValid() {
-    // Future validation could be added here
-    return true;
+function isPollAndOptsValid() {
+    var pollValid = true;
+    var optsValid = true;
+    var minMaxSelValid = true;
+
+    // Check question is valid
+    pollValid = isPollValid();
+
+    // Check opts are valid
+    optsValid = isPollOptionsValid();
+
+    // Check min and max selections are valid
+    minMaxSelValid = isMinMaxSelectionValid();
+
+    return pollValid && optsValid && minMaxSelValid;
 }
 
-function isMinSelectionValid() {
-    return true;
+function isPollValid() {
+    var valid = true;
+
+    // Check question is valid
+    var question = $('#question-input').val();
+
+    if(question === '') {
+        checkAndAddError({
+            error: "Question / Statement for the poll is blank.",
+            helpBlockId: "question-input-error-block"
+        });
+
+        valid = false;
+    }
+
+    return valid;
 }
 
-function isMaxSelectionValid() {
-    return true;
+function isPollOptionsValid() {
+    var valid = true;
+    var optsInputs = $('.option-formset #option-name-input');
+    var helpBlockId = "options-input-error-block";
+
+    var index = 0;
+    var errorStr = "Option ";
+    for(var i = 0; i < optsInputs.length; i++) {
+        var input = optsInputs[i];
+
+        if(input.placeholder.indexOf("X") === -1) {
+
+            if(input.value === ''){
+                errorStr = errorStr + (index+1) + " ";
+
+                valid = false;
+            }
+
+            index++;
+        }
+    }
+
+    if(valid === false) {
+        errorStr = errorStr + " is blank.";
+
+        checkAndAddError({
+           error: errorStr,
+           helpBlockId: helpBlockId
+        });
+    }
+
+    return valid;
 }
+
+$('#question-input').on('input', function (e) {
+    validateFormField(isPollValid, "question-input-error-block");
+});
+
+$('.option-formset #option-name-input').on('input', function(e) {
+   validateFormField(isPollOptionsValid, "options-input-error-block");
+});
+
+function isMinMaxSelectionValid() {
+    var valid = true;
+    var minInput = $('#minimum-input');
+    var minInputMinAttr = parseInt(minInput[0].min);
+    var minInputVal = minInput.val();
+    var helpBlockId = "selections-input-error-block";
+    var errorStr = "";
+
+    if(minInputVal < minInputMinAttr) {
+        errorStr = "The minimum option selection cannot be less than " + minInputMinAttr;
+        valid = false;
+    }
+
+    var maxInput = $('#maximum-input');
+    var maxInputMinAttr = parseInt(maxInput[0].min);
+    var maxInputVal = maxInput.val();
+
+    if(maxInputVal < maxInputMinAttr) {
+        if(errorStr !== '') {
+            errorStr = errorStr + " and the maximum cannot be less than " + maxInputMinAttr;
+        } else {
+            errorStr = "The maximum option selection cannot be less than " + maxInputMinAttr;
+        }
+
+        valid = false;
+    }
+
+    if(valid === false) {
+        errorStr = errorStr + ".";
+
+        checkAndAddError({
+           error: errorStr,
+           helpBlockId: helpBlockId
+        });
+    }
+
+    return valid;
+}
+
+$('#minimum-input, #maximum-input').on('input', function(e) {
+   validateFormField(isMinMaxSelectionValid, "selections-input-error-block");
+});
 
 function areOrganisersEmailsValid() {
-    return true;
+    var valid = true;
+    var organiserInputs = $('.organiser-formset #organiser-email-input');
+    var helpBlockId = "organisers-input-error-block";
+
+    var index = 0;
+    var errorBlankStr = "Organiser ";
+    var errorInvalidStr = "Organiser ";
+    var errorNotUserStr = "";
+    for(var i = 0; i < organiserInputs.length; i++) {
+        var input = organiserInputs[i];
+
+        if(input.placeholder.indexOf("X") === -1) {
+            // Check if the input field is blank
+            if(input.value === ''){
+                errorBlankStr = errorBlankStr + (index+1) + " ";
+
+                valid = false;
+            } else {
+                // Ensure that any email supplied is of a valid format
+                if (emailRegex.test(input.value) === false) {
+                    errorInvalidStr = errorInvalidStr + (index + 1) + " ";
+
+                    valid = false;
+                } else {
+                    // If the email format is valid, ensure that an email of a registered DemoUser is being
+                    // supplied and not a random email address
+                    var foundMatch = user_emails.some(function (obj) {
+                       return obj.email === input.value;
+                    });
+
+                    if(!foundMatch) {
+                        errorNotUserStr = input.value + " is not a registered user and cannot be an organiser.";
+                        valid = false;
+                    }
+                }
+            }
+
+            index++;
+        }
+    }
+
+    if(valid === false) {
+        var errorStr = "";
+
+        // Will be greater than 10 if either a blank input or invalid input has been detected (10 char is the base
+        // length of the original err strings)
+        if( errorBlankStr.length > 10 ) {
+            errorStr = errorBlankStr + " email is blank. ";
+        }
+
+        if( errorInvalidStr.length > 10 ) {
+            errorStr = errorStr + errorInvalidStr + " email is invalid. ";
+        }
+
+        // This means an invalid user has been detected
+        if(errorNotUserStr.length > 0) {
+            errorStr = errorStr + errorNotUserStr;
+        }
+
+        checkAndAddError({
+           error: errorStr,
+           helpBlockId: helpBlockId
+        });
+    }
+
+    return valid;
 }
+
+$('.organiser-formset #organiser-email-input').on('input', function(e) {
+   validateFormField(areOrganisersEmailsValid, "organisers-input-error-block");
+});
 
 function areTrusteesEmailsValid() {
-    return true;
+    var valid = true;
+    var trusteeInputs = $('.trustee-formset #trustee-email-input');
+    var helpBlockId = "trustees-input-error-block";
+
+    var index = 0;
+    var errorBlankStr = "Trustee ";
+    var errorInvalidStr = "Trustee ";
+    for(var i = 0; i < trusteeInputs.length; i++) {
+        var input = trusteeInputs[i];
+
+        if(input.placeholder.indexOf("X") === -1) {
+            // Check if the input field is blank
+            if(input.value === ''){
+                errorBlankStr = errorBlankStr + (index+1) + " ";
+
+                valid = false;
+            } else if (emailRegex.test(input.value) === false) {
+                errorInvalidStr = errorInvalidStr + (index+1) + " ";
+
+                valid = false;
+            }
+
+            index++;
+        }
+    }
+
+    if(valid === false) {
+        var errorStr = "";
+
+        // Will be greater than 8 if either a blank input or invalid input has been detected (8 char is the base
+        // length of the original err strings)
+        if( errorBlankStr.length > 8 ) {
+            errorStr = errorBlankStr + " email is blank. ";
+        }
+
+        if( errorInvalidStr.length > 8 ) {
+            errorStr = errorStr + errorInvalidStr + " email is invalid.";
+        }
+
+        checkAndAddError({
+           error: errorStr,
+           helpBlockId: helpBlockId
+        });
+    }
+
+    return valid;
 }
+
+$('.trustee-formset #trustee-email-input').on('input', function(e) {
+   validateFormField(areTrusteesEmailsValid, "trustees-input-error-block");
+});
 
 function isVotersListValid() {
-    return true;
-}
+    var valid = true;
+    var votersInputVal = $('#voters-list-input').val();
 
-function isReCaptchaStillValid() {
-    return true;
-}
+    // Check if the text area is blank
+    if(votersInputVal === '') {
+        checkAndAddError({
+            error: "The voters list is blank.",
+            helpBlockId: "voters-input-error-block"
+        });
 
-$('.input-control').on('input', function(e) {
-    if(reCaptchaValid === true) {
-        submitBtn.val('Create Event');
-        submitBtn.removeAttr('disabled');
+        return false;
     }
+
+    var errorStr = "";
+    var invalidCount = 0;
+
+    // Check whether one or multiple emails have been supplied
+    if(votersInputVal.indexOf(',') === -1) {
+        // Check the validity of the single email address
+        if(emailRegex.test(votersInputVal) === false) {
+            errorStr = errorStr + votersInputVal + " ";
+            valid = false;
+            invalidCount++;
+        }
+    } else {
+        // Proceed to check if the data within the text area is valid csv
+        var csvParseOutput = Papa.parse(votersInputVal);
+
+        if (csvParseOutput.errors.length > 0) {
+            checkAndAddError({
+                error: "The voters list contains invalid data. It should be a csv list containing voter email addresses.",
+                helpBlockId: "voters-input-error-block"
+            });
+
+            return false;
+        }
+
+        // Check that the emails supplied are valid email addresses (using a basic regex)
+        var votersEmails = csvParseOutput.data[0];
+
+        for(var i = 0; i < votersEmails.length; i++) {
+            var voter_email = votersEmails[i].replace(' ', '');
+
+            if (emailRegex.test(voter_email) === false) {
+                errorStr = errorStr + voter_email + " ";
+                valid = false;
+                invalidCount++;
+            }
+        }
+    }
+
+    if(valid === false) {
+        if(invalidCount > 1) {
+            errorStr = errorStr + "are invalid email addresses.";
+        } else {
+            errorStr = errorStr + "is an invalid email address.";
+        }
+
+        checkAndAddError({
+           error: errorStr,
+           helpBlockId: "voters-input-error-block"
+        });
+    }
+
+    return valid;
+}
+
+$('#voters-list-input').change(function(e) {
+    validateFormField(isVotersListValid, "voters-input-error-block");
 });
+
+function checkAndAddError(newError) { // Ensures that an error hasn't already been pushed
+    var found = errors.some(function(error) {
+       return error.error === newError.error && error.helpBlockId === newError.helpBlockId
+    });
+
+    if(!found) {
+        errors.push(newError);
+    }
+}
+
+function highlightErrors() {
+    // Generate the general list of errors
+    var baseGeneralString = "Errors were found in the form as follows:\n";
+    generalErrorBlock.appendChild(document.createTextNode(baseGeneralString));
+    generalErrorBlock.appendChild(makeErrorUL());
+}
+
+function highlightError(helpBlockId) {
+    for(var i = 0; i < errors.length; i++) {
+        var error = errors[i];
+        if(helpBlockId === error.helpBlockId) {
+            $('#' + helpBlockId).html(error.error);
+        }
+    }
+}
+
+function makeErrorUL() {
+    // Create the list element:
+    var list = document.createElement('ul');
+
+    for(var i = 0; i < errors.length; i++) {
+        // Perform list item generation
+        // Create the list item:
+        var item = document.createElement('li');
+
+        // Set its contents:
+        var errorText = errors[i].error;
+        item.appendChild(document.createTextNode(errorText));
+
+        // Add it to the list:
+        list.appendChild(item);
+
+        // Populate the error's associated error block with the data
+        $('#' + errors[i].helpBlockId).html(errorText);
+    }
+
+    return list;
+}
+
+function clearErrors() {
+    // Clear the errors array
+    errors.splice(0,errors.length);
+
+    // Clear the general list of errors
+    $('#all-errors-help-block').html('');
+}
+
+function clearError(helpBlockId) {
+    $('#' + helpBlockId).html('');
+
+    errors = errors.filter(e => e.helpBlockId !== helpBlockId);
+}
 
 // File handling
 
@@ -145,7 +635,7 @@ function processFileChange(event) {
                     $('#result').removeClass("hidden").html(
                        totalNumEmails + " email(s) have been successfully uploaded.");
 
-                    $('#voters-list-input').html(emails.join(', '));
+                    $('#voters-list-input').val(emails.join(', '));
                 } else {
                     // There were errors, so inform the user
                     $('#result')
@@ -163,9 +653,8 @@ document.getElementById('files').addEventListener('change', processFileChange, f
 // reCAPTCHA
 
 function reCVerificationCallback() {
-    // TODO: call isFormValid before doing this and highlighting errors if any found
     reCaptchaValid = true;
-    submitBtn.removeAttr('disabled');
+    validateForm();
 }
 
 function reCExpiredCallback() {
@@ -270,9 +759,14 @@ function updateFormset(formset) { // Ported from DEMOS 1. Updates the row number
 function updateForm(form, formIndex) { // Ported from DEMOS 1.
     // Specific update for option forms
     var mayBeTextInput = form.find('input:text')[0];
-    if(mayBeTextInput.placeholder !== undefined
-        && mayBeTextInput.placeholder.indexOf("Candidate") > -1) {
-        mayBeTextInput.placeholder = "Example: Candidate " + (formIndex + 1);
+    if(mayBeTextInput.placeholder !== undefined) {
+        if( mayBeTextInput.placeholder.indexOf("Candidate") > -1) {
+            mayBeTextInput.placeholder = "Example: Candidate " + (formIndex + 1);
+        } else if (mayBeTextInput.placeholder.indexOf("trusteeX") > -1) {
+            mayBeTextInput.placeholder = "Example: trustee@example.com";
+        } else if (mayBeTextInput.placeholder.indexOf("organiserX") > -1) {
+            mayBeTextInput.placeholder = "Example: organiser@example.com";
+        }
     }
 
     var formset = form.parent('.formset');

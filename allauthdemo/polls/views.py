@@ -1,17 +1,12 @@
-import os
 from io import StringIO
-from django.shortcuts import render
-from django.forms import inlineformset_factory, formset_factory
-from django.contrib.auth.decorators import user_passes_test
 from django.contrib import messages
 from django.http import HttpResponseRedirect, HttpResponse, Http404
 from django.core.urlresolvers import reverse
 from django.shortcuts import get_object_or_404, render, render_to_response
-from django.template import RequestContext
-from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 from django.views import generic
 from django.conf import settings
+from django.core import serializers
 
 from .forms import EventForm, PollForm, OptionFormset, QuestionFormset, OrganiserFormSet, TrusteeFormSet, VoteForm, EventSetupForm, EventEditForm, DecryptionFormset, DecryptionFormSetHelper
 from .models import Event, Poll, PollOption, EmailUser, Ballot, TrusteeKey, Decryption
@@ -304,21 +299,12 @@ def create_event(request):
 
         return HttpResponseRedirect("/event/")
     elif request.method == "GET":
-        #form = EventForm()
-        #organiser_formset = OrganiserFormSet(prefix="formset_organiser", initial=[{'email': request.user.email }])
-        #trustee_formset = TrusteeFormSet(prefix="formset_trustee", initial=[{'email': request.user.email }])
-        # Create the formset, specifying the form and formset we want to use.
-        '''return render(request, 
-                      "polls/create_event.html", 
-                      {
-                          "event": event, 
-                          "form": form, 
-                          "organiser_formset": organiser_formset, 
-                          "trustee_formset": trustee_formset, 
-                          "G_R_SITE_KEY": settings.RECAPTCHA_PUBLIC_KEY
-                      })'''
+        # Obtain context data for the rendering of the html template
+        events = Event.objects.all()
+        demo_users = DemoUser.objects.all()
 
-        return render(request, "polls/create_event.html", {"G_R_SITE_KEY": settings.RECAPTCHA_PUBLIC_KEY, "user_email": request.user.email})
+        # Render the template
+        return render(request, "polls/create_event.html", {"G_R_SITE_KEY": settings.RECAPTCHA_PUBLIC_KEY, "user_email": request.user.email, "events": events, "demo_users": demo_users})
     else:
         return HttpResponseNotAllowed()
 
