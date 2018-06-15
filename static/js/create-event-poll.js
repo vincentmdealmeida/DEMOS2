@@ -832,4 +832,17 @@ $('.formset-form-remove').click(function (e) { // Ported from DEMOS1
     }
     updateFormset(formset);
     formset.trigger('formsetFormRemoved');
+
+    // Perform validation now that a row has been removed
+    switch (formPrefix) {
+        case 'option':
+            validateFormField(isPollOptionsValid, "options-input-error-block");
+            break;
+        case 'organiser':
+            validateFormField(areOrganisersEmailsValid, "organisers-input-error-block");
+            break;
+        case 'trustee':
+            validateFormField(areTrusteesEmailsValid, "trustees-input-error-block");
+            break;
+    }
 });

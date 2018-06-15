@@ -304,7 +304,14 @@ def create_event(request):
         demo_users = DemoUser.objects.all()
 
         # Render the template
-        return render(request, "polls/create_event.html", {"G_R_SITE_KEY": settings.RECAPTCHA_PUBLIC_KEY, "user_email": request.user.email, "events": events, "demo_users": demo_users})
+        return render(request,
+                      "polls/create_event.html",
+                      {
+                          "G_R_SITE_KEY": settings.RECAPTCHA_PUBLIC_KEY,
+                          "user_email": request.user.email,
+                          "events": events,
+                          "demo_users": demo_users
+                      })
     else:
         return HttpResponseNotAllowed()
 
