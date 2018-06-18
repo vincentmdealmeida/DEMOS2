@@ -14,7 +14,7 @@ from allauthdemo.auth.models import DemoUser
 
     Author: Vincent de Almeida
 
-    Created: 11/07/2018
+    Created: 11/06/2018
 '''
 
 # TODO: Define a validation function that can do back-end verification on top of the front end validation
@@ -31,8 +31,6 @@ class CreateNewEventModelAdaptor:
     identifier = None
     starts_at = None
     ends_at = None
-    min_num_selections = 0
-    max_num_selections = 0
     organisers = []
     trustees = []
     voters = []
@@ -47,6 +45,8 @@ class CreateNewEventModelAdaptor:
         self.form_data = form_data.copy()
         self.user = user
         # TODO: Call validation func here (incl functionality for verifying CSRF + reCAPTCHA)
+        print("Form Data:")
+        print(self.form_data)
         self.__extractData()
 
 
@@ -108,11 +108,6 @@ class CreateNewEventModelAdaptor:
                 else:
                     self.voters.append(EmailUser(email=voter_email))
 
-
-        # Extract the min and max number of selections
-        self.min_num_selections = int(self.form_data.pop('minimum-input')[0])
-        self.max_num_selections = int(self.form_data.pop('maximum-input')[0])
-
         # Create the Event model object - this does not persist it to the DB
         self.event = Event(start_time=self.starts_at,
                            end_time=self.ends_at,
@@ -124,27 +119,35 @@ class CreateNewEventModelAdaptor:
 
 
     def __gen_polls_options_map(self):
-        # At the time of writing, you can only define one poll at event-creation time
+        # Get the poll count (the number of poll and options that have been defined)
+        poll_count = int(self.form_data.pop('poll-count-input')[0])
 
-        # Generate PollOption objects from the option data defined in form_data
-        options = self.form_data.pop('option-name-input')
-        poll_options_list = []
+        for i in range(poll_count):
+            # String version of i
+            i_str = str(i)
 
-        for option in options:
-            if option != '':
-                poll_options_list.append(PollOption(choice_text=option, votes=0))
+            # Generate PollOption objects from the option data defined in form_data
+            options = self.form_data.pop('option-name-input-' + i_str)
+            poll_options_list = []
+            votes = 0
 
-        # Extract required Poll object data and create a poll with its PollOption objects
-        text = self.form_data.pop('question-input')[0]
-        votes = 0
+            for option in options:
+                if option != '':
+                    poll_options_list.append(PollOption(choice_text=option, votes=votes))
 
-        poll = Poll(question_text=text,
-                    total_votes=votes,
-                    min_num_selections=self.min_num_selections,
-                    max_num_selections=self.max_num_selections,
-                    event=self.event)
+            # Extract required Poll object data and create a poll with its PollOption objects
+            text = self.form_data.pop('question-name-input-' + i_str)[0]
+            min_num_selections = int(self.form_data.pop('minimum-input-' + i_str)[0])
+            max_num_selections = int(self.form_data.pop('maximum-input-' + i_str)[0])
 
-        self.polls_options_map.append([poll, poll_options_list])
+            poll = Poll(question_text=text,
+                        total_votes=votes,
+                        min_num_selections=min_num_selections,
+                        max_num_selections=max_num_selections,
+                        event=self.event)
+
+            self.polls_options_map.append([poll, poll_options_list])
+
 
     # Instantiate all the polls and their associated poll options
     def __get_instantiated_polls(self):
@@ -210,8 +213,6 @@ class CreateNewEventModelAdaptor:
         self.identifier = None
         self.starts_at = None
         self.ends_at = None
-        self.min_num_selections = 0
-        self.max_num_selections = 0
         self.organisers[:] = []
         self.trustees[:] = []
         self.voters[:] = []

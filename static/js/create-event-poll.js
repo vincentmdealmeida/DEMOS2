@@ -7,8 +7,19 @@ var dateRegex = /^[0-9]{4}-(((0[13578]|(10|12))-(0[1-9]|[1-2][0-9]|3[0-1]))|(02-
 var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 var reCaptchaValid = false;
 var generalErrorBlock = document.getElementById('all-errors-help-block');
-
 var errors = [];
+var create = true;
+var pollCount = 0;
+
+function finalisePolls() {
+    // Update the value of the poll count input
+    $('#poll-count-input').val(pollCount);
+
+    // Remove the empty and hidden poll row from the poll table
+    var formset = $(".formset[data-formset-prefix='questions']");
+    var emptyForm = formset.children('.formset-form-empty');
+    emptyForm.remove();
+}
 
 $("#election-form").submit(function(e) {
     // Intercept submission of form and temporarily suspend it
@@ -28,6 +39,7 @@ $("#election-form").submit(function(e) {
 
     if( formDataValid === true ) {
         clearErrors();
+        finalisePolls();
         form.submit();
     } else {
         submitBtn.val(submitBtnErrLabel);
@@ -54,12 +66,11 @@ function isFormValid() {
     var slugValid = isSlugValid();
     var voteStartValid = isVoteStartValid();
     var voteEndValid = isVoteEndValid();
-    var pollOptsValid = isPollAndOptsValid();
     var organisersEmailsValid = areOrganisersEmailsValid();
     var trusteesEmailsValid = areTrusteesEmailsValid();
     var votersListValid = isVotersListValid();
 
-    return nameValid && slugValid && voteStartValid && voteEndValid && pollOptsValid
+    return nameValid && slugValid && voteStartValid && voteEndValid
         && organisersEmailsValid && trusteesEmailsValid && votersListValid;
 }
 
@@ -86,7 +97,7 @@ function isNameValid() {
     // Based on a list of names supplied from the create_event html template
     if(events_list !== undefined) {
         var valid = true;
-        var event_name = $('#name-input').val();
+        var event_name = $('#name-input').val().trim();
 
         if(event_name === '') {
             checkAndAddError({
@@ -215,33 +226,16 @@ function isDateValid(date_time) {
     return dateRegex.test(date_time);
 }
 
-function isPollAndOptsValid() {
-    var pollValid = true;
-    var optsValid = true;
-    var minMaxSelValid = true;
-
-    // Check question is valid
-    pollValid = isPollValid();
-
-    // Check opts are valid
-    optsValid = isPollOptionsValid();
-
-    // Check min and max selections are valid
-    minMaxSelValid = isMinMaxSelectionValid();
-
-    return pollValid && optsValid && minMaxSelValid;
-}
-
-function isPollValid() {
+function isPollQValid() {
     var valid = true;
 
     // Check question is valid
-    var question = $('#question-input').val();
+    var question = $('#question-name-input-' + pollCount).val();
 
     if(question === '') {
         checkAndAddError({
             error: "Question / Statement for the poll is blank.",
-            helpBlockId: "question-input-error-block"
+            helpBlockId: "question-input-error-block-" + pollCount
         });
 
         valid = false;
@@ -252,8 +246,8 @@ function isPollValid() {
 
 function isPollOptionsValid() {
     var valid = true;
-    var optsInputs = $('.option-formset #option-name-input');
-    var helpBlockId = "options-input-error-block";
+    var optsInputs = $('.option-formset #option-name-input-' + pollCount);
+    var helpBlockId = "options-input-error-block-" + pollCount;
 
     var index = 0;
     var errorStr = "Option ";
@@ -284,36 +278,28 @@ function isPollOptionsValid() {
     return valid;
 }
 
-$('#question-input').on('input', function (e) {
-    validateFormField(isPollValid, "question-input-error-block");
-});
-
-$('.option-formset #option-name-input').on('input', function(e) {
-   validateFormField(isPollOptionsValid, "options-input-error-block");
-});
-
 function isMinMaxSelectionValid() {
     var valid = true;
-    var minInput = $('#minimum-input');
+    var minInput = $('#minimum-input-' + pollCount);
     var minInputMinAttr = parseInt(minInput[0].min);
     var minInputVal = minInput.val();
-    var helpBlockId = "selections-input-error-block";
+    var helpBlockId = "selections-input-error-block-" + pollCount;
     var errorStr = "";
 
-    if(minInputVal < minInputMinAttr) {
-        errorStr = "The minimum option selection cannot be less than " + minInputMinAttr;
+    if(minInputVal === "" || minInputVal < minInputMinAttr) {
+        errorStr = "The minimum option selection cannot be less than " + minInputMinAttr + " or blank";
         valid = false;
     }
 
-    var maxInput = $('#maximum-input');
+    var maxInput = $('#maximum-input-' + pollCount);
     var maxInputMinAttr = parseInt(maxInput[0].min);
     var maxInputVal = maxInput.val();
 
-    if(maxInputVal < maxInputMinAttr) {
+    if(maxInputVal === "" || maxInputVal < maxInputMinAttr) {
         if(errorStr !== '') {
-            errorStr = errorStr + " and the maximum cannot be less than " + maxInputMinAttr;
+            errorStr = errorStr + " and the maximum cannot be less than " + maxInputMinAttr + " or blank";
         } else {
-            errorStr = "The maximum option selection cannot be less than " + maxInputMinAttr;
+            errorStr = "The maximum option selection cannot be less than " + maxInputMinAttr + " or blank";
         }
 
         valid = false;
@@ -330,10 +316,6 @@ function isMinMaxSelectionValid() {
 
     return valid;
 }
-
-$('#minimum-input, #maximum-input').on('input', function(e) {
-   validateFormField(isMinMaxSelectionValid, "selections-input-error-block");
-});
 
 function areOrganisersEmailsValid() {
     var valid = true;
@@ -739,7 +721,7 @@ function update(event, ui) {
     updateFormset(formset);
 }
 
-$("#options-input-table, #organisers-input-table, #trustees-input-table").sortable({
+$("#questions-input-table, #organisers-input-table, #trustees-input-table").sortable({
     items: "tr",
     update: update
 });
@@ -759,7 +741,7 @@ function updateFormset(formset) { // Ported from DEMOS 1. Updates the row number
 function updateForm(form, formIndex) { // Ported from DEMOS 1.
     // Specific update for option forms
     var mayBeTextInput = form.find('input:text')[0];
-    if(mayBeTextInput.placeholder !== undefined) {
+    if(mayBeTextInput !== undefined && mayBeTextInput.placeholder !== undefined) {
         if( mayBeTextInput.placeholder.indexOf("Candidate") > -1) {
             mayBeTextInput.placeholder = "Example: Candidate " + (formIndex + 1);
         } else if (mayBeTextInput.placeholder.indexOf("trusteeX") > -1) {
@@ -794,12 +776,107 @@ function manageTotalForms(formset, value) { // Ported from DEMOS1.
     addButton.prop('disabled', parseInt(totalForms.val()) - removedForms.length >= parseInt(maxNumForms.val()));
 }
 
+function updateQuestionFormInputs(form) {
+    // Update the name and IDs of all the dialog input fields
+    var clonedFields = form.find('.formset-form-fields:first >');
+
+    // Update the table ID
+    var table = form.find('.table:first');
+    table.attr("id", "options-table-" + pollCount);
+
+    // Update the poll question / statement ID
+    clonedFields.find(".dialogQ:first")
+        .attr("id", "question-name-input-" + pollCount)
+        .attr("name", "question-name-input-" + pollCount);
+
+    // Update one of the help block IDs for various sections of the dialog
+    var pollQuestionErrorHelpBlock = clonedFields.find("#question-input-error-block");
+    pollQuestionErrorHelpBlock.attr("id", "question-input-error-block-" + pollCount);
+
+    var pollOptionsErrorHelpBlock = clonedFields.find("#options-input-error-block");
+    pollOptionsErrorHelpBlock.attr("id", "options-input-error-block-" + pollCount);
+
+    var pollSelectionsErrorHelpBlock = clonedFields.find("#selections-input-error-block");
+    pollSelectionsErrorHelpBlock.attr("id", "selections-input-error-block-" + pollCount);
+
+    // Update the poll option input IDs
+    var optsInputs = clonedFields.find(".dialogO");
+
+    for(var i = 0; i < optsInputs.length; i++) {
+        var input = optsInputs[i];
+        input.id = "option-name-input-" + pollCount;
+        input.name = "option-name-input-" + pollCount;
+    }
+
+    // Update the data-formset-prefix for correct referencing
+    var dataFormsetPrefix = "options-" + pollCount;
+    var optionFormSet = clonedFields.find(".option-formset");
+    optionFormSet.attr("data-formset-prefix", dataFormsetPrefix);
+
+    var addPollOptBtn = clonedFields.find('.formset-add');
+    addPollOptBtn.attr("data-formset-prefix", dataFormsetPrefix);
+
+    // Update the poll min and max selection
+    clonedFields.find(".min-input:first")
+        .attr("id", "minimum-input-" + pollCount)
+        .attr("name", "minimum-input-" + pollCount);
+
+    clonedFields.find(".max-input:first")
+        .attr("id", "maximum-input-" + pollCount)
+        .attr("name", "maximum-input-" + pollCount);
+}
+
+function isDialogFormValid() {
+    var pollQValid = true;
+    var optsValid = true;
+    var minMaxSelValid = true;
+
+    // Check question is valid
+    var pollQErrorHelpBlockId = "question-input-error-block-" + pollCount;
+    pollQValid = isPollQValid();
+
+    if(pollQValid === true) {
+        clearError(pollQErrorHelpBlockId);
+    } else {
+        highlightError(pollQErrorHelpBlockId);
+    }
+
+    // Check opts are valid
+    var pollOptsErrorHelpBlockId = "options-input-error-block-" + pollCount;
+    optsValid = isPollOptionsValid();
+
+    if(optsValid === true) {
+        clearError(pollOptsErrorHelpBlockId);
+    } else {
+        highlightError(pollOptsErrorHelpBlockId);
+    }
+
+    // Check min and max selections are valid
+    var pollSelErrorHelpBlockId = "selections-input-error-block-" + pollCount;
+    minMaxSelValid = isMinMaxSelectionValid();
+
+    if(minMaxSelValid === true) {
+        clearError(pollSelErrorHelpBlockId);
+    } else {
+        highlightError(pollSelErrorHelpBlockId);
+    }
+
+    return pollQValid && optsValid && minMaxSelValid;
+}
+
 $('.formset-add').click(function (e) { // Ported from DEMOS1
     var formsetPrefix = $(this).attr('data-formset-prefix');
     var formset = $('.formset[data-formset-prefix="' + formsetPrefix + '"]');
     var emptyForm = formset.children('.formset-form-empty');
     var emptyFormCheckedInputs = emptyForm.find('input:checkbox:checked, input:radio:checked');
     var form = emptyForm.clone(true).removeClass('formset-form-empty');
+
+    // Update the IDs of the inputs of the dialogs based on the number of questions
+    if(formsetPrefix === "questions") {
+        // Update the IDs and names of all of the cloned input form fields
+        updateQuestionFormInputs(form);
+    }
+
     var formIndex = formset.children('.formset-form:not(.formset-form-empty)').length;
 
     formset.append(form);
@@ -836,7 +913,7 @@ $('.formset-form-remove').click(function (e) { // Ported from DEMOS1
     // Perform validation now that a row has been removed
     switch (formPrefix) {
         case 'option':
-            validateFormField(isPollOptionsValid, "options-input-error-block");
+            validateFormField(isPollOptionsValid, "options-input-error-block-" + pollCount);
             break;
         case 'organiser':
             validateFormField(areOrganisersEmailsValid, "organisers-input-error-block");
@@ -845,4 +922,90 @@ $('.formset-form-remove').click(function (e) { // Ported from DEMOS1
             validateFormField(areTrusteesEmailsValid, "trustees-input-error-block");
             break;
     }
+});
+
+$('.formset-form-save').click(function (e) {
+    var dialogValid = isDialogFormValid();
+
+    if(dialogValid === true) {
+        // TODO: Clear errors
+        var modal = $(this).closest('.modal');
+        var form = modal.data('form');
+        var name = $('#question-name-input-' + pollCount).val();
+        form.find('.formset-form-name:first').text(name);
+        modal.data('formSave', true);
+        modal.modal('hide');
+        pollCount++;
+    } else {
+        //highlightErrors();
+    }
+});
+
+$('.formset-form-edit').click(function (e) {
+    var form = $(this).closest('.formset-form');
+    $('#formset-modal').data('form', form).modal('show');
+});
+
+$('#formset-modal').on('show.bs.modal', function (e) { // Ported from DEMOS1
+    var modal = $(this);
+    var modalBody = modal.find('.modal-body > .row > [class^="col-"]');
+    var modalTitle = modal.find('.modal-title');
+    var form =  modal.data('form');
+    var formset = form.parent('.formset');
+    var formFields = form.find('.formset-form-fields:first >').detach();
+    modal.data('formFields', formFields);
+
+    var clonedFields = formFields.clone(true);
+    modalBody.append(clonedFields);
+
+    modalTitle.text(formset.attr('data-formset-modal-title'));
+    formset.trigger('formsetModalShow', [modalBody]);
+
+    // Attach an event handler for poll option row sorting
+    $("#options-table-" + pollCount).sortable({
+        items: "tr",
+        update: update
+    });
+});
+
+$('#formset-modal').on('hide.bs.modal', function (e) {
+    var modal = $(this);
+    var modalBody = modal.find('.modal-body > .row > [class^="col-"]');
+    var form = modal.data('form');
+    var formset = form.parent('.formset');
+    if (modal.data('formSave')) {
+        var formset = form.parent('.formset');
+        if (modal.data('formAdd')) {
+            manageTotalForms(formset, +1);
+            form.removeClass('hidden');
+        }
+    } else {
+        if (modal.data('formAdd')) {
+            form.remove();
+        }
+    }
+    formset.trigger('formsetModalHide', [modalBody]);
+});
+
+$('#formset-modal').on('hidden.bs.modal', function (e) {
+    var modal = $(this);
+    var modalBody = modal.find('.modal-body > .row > [class^="col-"]');
+    var form = modal.data('form');
+    var formset = form.parent('.formset');
+    var formFields = form.find('.formset-form-fields:first');
+    if (modal.data('formSave')) {
+        formFields.append(modalBody.children().detach());
+        if (modal.data('formAdd')) {
+            formset.trigger('formsetFormAdded', [form]);
+        } else {
+            formset.trigger('formsetFormEdited', [form]);
+        }
+    } else {
+        modalBody.empty();
+        if (!modal.data('formAdd')) {
+            formFields.append(modal.data('formFields'));
+        }
+    }
+    modal.find('.modal-title').text('');
+    modal.removeData();
 });
