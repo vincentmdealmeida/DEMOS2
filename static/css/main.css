@@ -111,6 +111,10 @@ tbody.trustee-formset > tr {
   margin-bottom: 10px;
 }
 
+.dialogFormField {
+  margin-top: 0.65em;
+}
+
 div.formset_object {
   animation: 0.3s drop-intro;
 }

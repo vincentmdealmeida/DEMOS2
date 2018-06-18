@@ -107,132 +107,180 @@
                       </span>
                   </div>
                 </div>
-                <!-- Question / Statement -->
+                <!-- Questions -->
                 <div class="form-group">
-                  <label for="question-input" class="col-sm-3 col-md-2 control-label">Question / Statement:</label> <!-- This text can be a template variable -->
-                  <div class="col-sm-9 col-md-10">
-                      <input type="text" class="form-control input-control" id="question-input" placeholder="Example: Elections for the European Parliament" name="question-input" maxlength="200">
-                      <span id="question-input-help-block" class="help-block">
-                        Question / Statement that will be put forward to voters along with the below options.
-                      </span>
-                      <span id="question-input-error-block" class="help-block errorText">
-                        <!-- Errors flagged here -->
-                      </span>
-                  </div>
-                </div>
-                <!-- Options -->
-                <div class="form-group">
-                  <label for="options-input" class="col-sm-3 col-md-2 control-label">Options:</label> <!-- This text can be a template variable -->
+                  <label for="questions-input" class="col-sm-3 col-md-2 control-label">Polls:</label> <!-- This text can be a template variable -->
                   <div class="col-sm-9 col-md-10">
                     <div class="form-group">
-                        <table id="options-input-table" class="table table-hover">
+                        <table id="questions-input-table" class="table table-hover">
                           <thead>
                             <tr>
                               <th class="text-center">#</th>
-                              <th>Option</th>
+                              <th>Question / Statement</th>
                               <th class="text-center">Actions</th>
                             </tr>
                           </thead>
-                          <tbody id="sort" class="formset option-formset" data-formset-prefix="options" data-formset-type="inline">
-                            <!-- Option -->
-                            <tr class="formset-form sorting-row" data-formset-form-prefix="option">
+                          <tbody class="formset questions-formset" data-formset-prefix="questions" data-formset-type="modal" data-formset-modal-title="Add a New Poll">
+                            <!-- Question / Statement -->
+                            <tr class="formset-form formset-form-empty hidden" data-formset-form-prefix="question">
                               <!-- # -->
-                              <th class="formset-form-index text-center" scope=row>
+                              <td class="formset-form-index text-center" scope=row>
                                 1
-                              </th>
-                              <!-- Option Label -->
-                              <td>
-                                <div>
-                                  <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
-                                    <input type="text" class="form-control input-sm input-control" placeholder="Example: Candidate 1" id="option-name-input" name="option-name-input" maxlength="200">
-                                </div>
                               </td>
-                              <!-- Delete Action -->
+                              <!-- Question / Statement Label -->
+                              <th class="formset-form-name">
+                                <!-- Q Label Goes Here -->
+                              </th>
                               <td class="formset-form-actions text-center">
+                                <button type="button" class="btn btn-sm btn-default formset-form-edit" aria-label="Edit">
+                                  <i class="fa fa-pencil-square-o" aria-hidden="true"></i>
+                                </button>
                                 <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
                                   <i class="fa fa-trash-o" aria-hidden="true"></i>
                                 </button>
                               </td>
-                            </tr>
-                            <!-- Option -->
-                            <tr class="formset-form sorting-row" data-formset-form-prefix="option">
-                              <!-- # -->
-                              <th class="formset-form-index text-center" scope=row>
-                                2
-                              </th>
-                              <!-- Option Label -->
-                              <td>
-                                <div>
-                                    <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
-                                    <input type="text" class="form-control input-sm input-control" placeholder="Example: Candidate 2" id="option-name-input" name="option-name-input" maxlength="200">
-                                </div>
-                              </td>
-                              <!-- Delete Action -->
-                              <td class="formset-form-actions text-center">
-                                <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
-                                  <i class="fa fa-trash-o" aria-hidden="true"></i>
-                                </button>
-                              </td>
-                            </tr>
-                            <!-- Option -->
-                            <tr class="formset-form sorting-row formset-form-empty hidden" data-formset-form-prefix="option">
-                              <!-- # -->
-                              <th class="formset-form-index text-center" scope=row>
-                                X
-                              </th>
-                              <!-- Option Label -->
-                              <td>
-                                <div>
-                                    <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
-                                    <input type="text" class="form-control input-sm input-control" placeholder="Example: Candidate X" id="option-name-input" name="option-name-input" maxlength="200">
-                                </div>
-                              </td>
-                              <!-- Delete Action -->
-                              <td class="formset-form-actions text-center">
-                                <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
-                                  <i class="fa fa-trash-o" aria-hidden="true"></i>
-                                </button>
+                              <td class="hidden">
+                                  <div class="formset-form-fields">
+                                      <!-- Name -->
+                                      <div class="form-group dialogFormField">
+                                        <label for="question-name-input">Question / Statement</label>
+                                        <input type="text" class="form-control dialogQ" id="question-name-input" name="question-name-input" placeholder="Example: Elections for the European Parliament" maxlength="200">
+                                        <span id="question-name-input-help-block" class="help-block">
+                                          Question / Statement that will be put forward to voters along with the below options.
+                                        </span>
+                                          <span id="question-input-error-block" class="help-block errorText">
+                                              <!-- Errors flagged here -->
+                                          </span>
+                                      </div>
+                                      <!-- Options -->
+                                      <div class="form-group dialogFormField">
+                                          <label for="options-table">Options</label>
+                                          <table id="options-table" class="table table-hover">
+                                              <thead>
+                                                <tr>
+                                                  <th class="text-center">#</th>
+                                                  <th>Option</th>
+                                                  <th class="text-center">Actions</th>
+                                                </tr>
+                                              </thead>
+                                              <tbody id="sort" class="formset option-formset" data-formset-prefix="options" data-formset-type="inline">
+                                                <!-- Option -->
+                                                <tr class="formset-form sorting-row" data-formset-form-prefix="option">
+                                                  <!-- # -->
+                                                  <th class="formset-form-index text-center" scope=row>
+                                                    1
+                                                  </th>
+                                                  <!-- Option Label -->
+                                                  <td>
+                                                    <div>
+                                                      <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
+                                                        <input type="text" class="form-control input-sm input-control dialogO" placeholder="Example: Candidate 1" id="option-name-input" name="option-name-input" maxlength="200">
+                                                    </div>
+                                                  </td>
+                                                  <!-- Delete Action -->
+                                                  <td class="formset-form-actions text-center">
+                                                    <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
+                                                      <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                                    </button>
+                                                  </td>
+                                                </tr>
+                                                <!-- Option -->
+                                                <tr class="formset-form sorting-row" data-formset-form-prefix="option">
+                                                  <!-- # -->
+                                                  <th class="formset-form-index text-center" scope=row>
+                                                    2
+                                                  </th>
+                                                  <!-- Option Label -->
+                                                  <td>
+                                                    <div>
+                                                        <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
+                                                        <input type="text" class="form-control input-sm input-control dialogO" placeholder="Example: Candidate 2" id="option-name-input" name="option-name-input" maxlength="200">
+                                                    </div>
+                                                  </td>
+                                                  <!-- Delete Action -->
+                                                  <td class="formset-form-actions text-center">
+                                                    <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
+                                                      <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                                    </button>
+                                                  </td>
+                                                </tr>
+                                                <!-- Option -->
+                                                <tr class="formset-form sorting-row formset-form-empty hidden" data-formset-form-prefix="option">
+                                                  <!-- # -->
+                                                  <th class="formset-form-index text-center" scope=row>
+                                                    X
+                                                  </th>
+                                                  <!-- Option Label -->
+                                                  <td>
+                                                    <div>
+                                                        <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
+                                                        <input type="text" class="form-control input-sm input-control dialogO" placeholder="Example: Candidate X" id="option-name-input" name="option-name-input" maxlength="200">
+                                                    </div>
+                                                  </td>
+                                                  <!-- Delete Action -->
+                                                  <td class="formset-form-actions text-center">
+                                                    <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
+                                                      <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                                    </button>
+                                                  </td>
+                                                </tr>
+                                              </tbody>
+                                          </table>
+                                          <div class="clearfix">
+                                              <button type="button" class="btn btn-primary formset-add" data-formset-prefix="options">
+                                                <i class="fa fa-plus-circle" aria-hidden="true"></i>
+                                                Add Poll Option
+                                              </button>
+                                          </div>
+                                          <span id="question-input-help-block" class="help-block">
+                                              Drag and drop to re-order options.
+                                          </span>
+                                          <span id="options-input-error-block" class="help-block errorText">
+                                              <!-- Errors flagged here -->
+                                          </span>
+                                      </div>
+                                      <!-- Number of option selections -->
+                                      <div class="form-group dialogFormField">
+                                        <label for="selections-input" class="control-label">Number of Selections:</label> <!-- This text can be a template variable -->
+                                        <div class="row">
+                                                <div class="col-xs-6">
+                                                  <label class="sr-only" for="minimum-input">Minimum</label>
+                                                  <input type="number" class="form-control min-input" id="minimum-input" placeholder="Minimum" value="" name="minimum-input" min="0"> <!-- TODO: Max should be set to the number of options -->
+                                                </div>
+                                                <div class="col-xs-6">
+                                                  <label class="sr-only" for="maximum-input">Maximum</label>
+                                                  <input type="number" class="form-control max-input" id="maximum-input" placeholder="Maximum" value="" name="maximum-input" min="1"> <!-- TODO: Max should be set to the number of options -->
+                                                </div>
+                                          </div>
+                                          <span id="question-input-help-block" class="help-block">
+                                              Minimum and maximum number of option selections that a voter can make for the specified question / statement.
+                                          </span>
+                                          <span id="selections-input-error-block" class="help-block errorText">
+                                              <!-- Errors flagged here -->
+                                          </span>
+                                      </div>
+                                  </div>
                               </td>
                             </tr>
                           </tbody>
                         </table>
                         <div class="clearfix">
-                          <button type="button" class="btn btn-primary formset-add" data-formset-prefix="options">
+                          <button type="button" class="btn btn-primary formset-add" data-formset-prefix="questions">
                             <i class="fa fa-plus-circle" aria-hidden="true"></i>
-                            Add Question Option
+                            Add Poll
                           </button>
                         </div>
                         <span id="question-input-help-block" class="help-block">
-                            Drag and drop to re-order options.
+                            Drag and drop to re-order polls.
                         </span>
-                        <span id="options-input-error-block" class="help-block errorText">
+                        <span id="question-input-error-block" class="help-block errorText">
                             <!-- Errors flagged here -->
                         </span>
                       </div>
                   </div>
                 </div>
-                <!-- Number of option selections -->
-                <div class="form-group">
-                  <label for="selections-input" class="col-sm-3 col-md-2 control-label">Number of Selections:</label> <!-- This text can be a template variable -->
-                  <div class="col-sm-9 col-md-10">
-                      <div class="row">
-                          <div class="col-xs-6">
-                            <label class="sr-only" for="minimum-input">Minimum</label>
-                            <input type="number" class="form-control input-control" id="minimum-input" placeholder="Minimum" value="" name="minimum-input" min="0"> <!-- TODO: Max should be set to the number of options -->
-                          </div>
-                          <div class="col-xs-6">
-                            <label class="sr-only" for="maximum-input">Maximum</label>
-                            <input type="number" class="form-control input-control" id="maximum-input" placeholder="Maximum" value="" name="maximum-input" min="1"> <!-- TODO: Max should be set to the number of options -->
-                          </div>
-                      </div>
-                      <span id="question-input-help-block" class="help-block">
-                        Minimum and maximum number of option selections that a voter can make for the specified question / statement.
-                      </span>
-                        <span id="selections-input-error-block" class="help-block errorText">
-                            <!-- Errors flagged here -->
-                        </span>
-                  </div>
-                </div>
+                <!-- Number of Polls -->
+                <input type="number" id="poll-count-input" name="poll-count-input" class="hidden">
                 <!-- Organisers -->
                 <div class="form-group">
                   <label for="organisers-input" class="col-sm-3 col-md-2 control-label">Organisers:</label> <!-- This text can be a template variable -->
@@ -453,5 +501,25 @@
     </div>
 </div>
 
+<!-- This dialog has been imported from DEMOS1 -->
+<div class="modal fade" id="formset-modal" tabindex="-1" role="dialog" data-backdrop="static" data-keyboard="false" aria-labelledby="formset-modal-label">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title" id="formset-modal-label"></h4>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-xs-12">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger" data-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success formset-form-save">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 {% endblock %}
