@@ -10,13 +10,14 @@ var generalErrorBlock = document.getElementById('all-errors-help-block');
 var errors = [];
 var create = true;
 var pollCount = 0;
+var numOfOpts = 2;
 
 function finalisePolls() {
     // Update the value of the poll count input
     $('#poll-count-input').val(pollCount);
 
     // Remove the empty and hidden poll row from the poll table
-    var formset = $(".formset[data-formset-prefix='questions']");
+    var formset = $(".formset[data-formset-prefix='polls']");
     var emptyForm = formset.children('.formset-form-empty');
     emptyForm.remove();
 }
@@ -66,12 +67,14 @@ function isFormValid() {
     var slugValid = isSlugValid();
     var voteStartValid = isVoteStartValid();
     var voteEndValid = isVoteEndValid();
+    var eventTimingsValid = isEventTimingsValid();
+    var pollCountValid = isPollCountValid();
     var organisersEmailsValid = areOrganisersEmailsValid();
     var trusteesEmailsValid = areTrusteesEmailsValid();
     var votersListValid = isVotersListValid();
 
-    return nameValid && slugValid && voteStartValid && voteEndValid
-        && organisersEmailsValid && trusteesEmailsValid && votersListValid;
+    return nameValid && slugValid && voteStartValid && voteEndValid && pollCountValid
+        && eventTimingsValid && organisersEmailsValid && trusteesEmailsValid && votersListValid;
 }
 
 function validateFormField(validationFn, helpBlockId) {
@@ -201,13 +204,14 @@ $( "#vote-start-input" ).click(function() {
 });
 
 function isVoteEndValid() {
+    var helpBlockId = "vote-end-input-error-block";
     var end_date_time = $('#vote-end-input').val();
     var valid = isDateValid(end_date_time);
 
     if(valid === false) {
         checkAndAddError({
             error: "The voting end date and time format is invalid.",
-            helpBlockId: "vote-end-input-error-block"
+            helpBlockId: helpBlockId
         })
     }
 
@@ -222,8 +226,52 @@ $( "#vote-end-input" ).click(function() {
   $( "#vote-end-input" ).change();
 });
 
+// This is different to the start and end validation functions in that it will check whether or not
+// the start and end times overlap in an invalid way i.e. end time is before start etc.
+function isEventTimingsValid() {
+    var valid = true;
+    var helpBlockId = "event-timings-error-block";
+
+    // Extract the string val from the vote start and end input controls
+    var start_date_time = $('#vote-start-input').val();
+    var end_date_time = $('#vote-end-input').val();
+
+    // Convert the string vals to Date objects
+    var start_dateObj = new Date(start_date_time);
+    var end_dateObj = new Date(end_date_time);
+
+    // Ensure that the start date is before the end date and that the end date is after the start date
+    if(!(start_dateObj < end_dateObj && end_dateObj > start_dateObj)) {
+        checkAndAddError({
+           error: "The start date must be before the end date and the end after the start date.",
+           helpBlockId: "event-timings-error-block"
+        });
+
+        valid = false;
+    } else {
+        clearError(helpBlockId);
+    }
+
+    return valid;
+}
+
 function isDateValid(date_time) {
     return dateRegex.test(date_time);
+}
+
+function isPollCountValid() {
+    var valid = true;
+
+    if(pollCount < 1) {
+        checkAndAddError({
+            error: "You need to define at least 1 poll.",
+            helpBlockId: "polls-input-error-block"
+        });
+
+        valid = false;
+    }
+
+    return valid;
 }
 
 function isPollQValid() {
@@ -248,6 +296,15 @@ function isPollOptionsValid() {
     var valid = true;
     var optsInputs = $('.option-formset #option-name-input-' + pollCount);
     var helpBlockId = "options-input-error-block-" + pollCount;
+
+    if(numOfOpts < 1) {
+        checkAndAddError({
+            error: "There needs to be at least 1 option",
+            helpBlockId: helpBlockId
+        });
+
+        return false;
+    }
 
     var index = 0;
     var errorStr = "Option ";
@@ -287,7 +344,10 @@ function isMinMaxSelectionValid() {
     var errorStr = "";
 
     if(minInputVal === "" || minInputVal < minInputMinAttr) {
-        errorStr = "The minimum option selection cannot be less than " + minInputMinAttr + " or blank";
+        errorStr = "The minimum option selection value cannot be less than " + minInputMinAttr + " or blank";
+        valid = false;
+    } else if (minInputVal > numOfOpts) {
+        errorStr = "The minimum option selection value cannot be more than the number of options (" + numOfOpts + ")";
         valid = false;
     }
 
@@ -299,7 +359,15 @@ function isMinMaxSelectionValid() {
         if(errorStr !== '') {
             errorStr = errorStr + " and the maximum cannot be less than " + maxInputMinAttr + " or blank";
         } else {
-            errorStr = "The maximum option selection cannot be less than " + maxInputMinAttr + " or blank";
+            errorStr = "The maximum option selection value cannot be less than " + maxInputMinAttr + " or blank";
+        }
+
+        valid = false;
+    } else if (maxInputVal > numOfOpts) {
+        if (errorStr !== '') {
+            errorStr = errorStr + " and the same applies to the maximum";
+        } else {
+            errorStr = "The maximum option selection value (" + maxInputVal + ") cannot be more than the number of options (" + numOfOpts + ")";
         }
 
         valid = false;
@@ -445,13 +513,14 @@ $('.trustee-formset #trustee-email-input').on('input', function(e) {
 
 function isVotersListValid() {
     var valid = true;
+    var helpBlockId = "voters-input-error-block";
     var votersInputVal = $('#voters-list-input').val();
 
     // Check if the text area is blank
     if(votersInputVal === '') {
         checkAndAddError({
             error: "The voters list is blank.",
-            helpBlockId: "voters-input-error-block"
+            helpBlockId: helpBlockId
         });
 
         return false;
@@ -475,7 +544,7 @@ function isVotersListValid() {
         if (csvParseOutput.errors.length > 0) {
             checkAndAddError({
                 error: "The voters list contains invalid data. It should be a csv list containing voter email addresses.",
-                helpBlockId: "voters-input-error-block"
+                helpBlockId: helpBlockId
             });
 
             return false;
@@ -504,7 +573,7 @@ function isVotersListValid() {
 
         checkAndAddError({
            error: errorStr,
-           helpBlockId: "voters-input-error-block"
+           helpBlockId: helpBlockId
         });
     }
 
@@ -618,6 +687,9 @@ function processFileChange(event) {
                        totalNumEmails + " email(s) have been successfully uploaded.");
 
                     $('#voters-list-input').val(emails.join(', '));
+
+                    // Finally validate the form field
+                    validateFormField(isVotersListValid, "voters-input-error-block");
                 } else {
                     // There were errors, so inform the user
                     $('#result')
@@ -721,7 +793,7 @@ function update(event, ui) {
     updateFormset(formset);
 }
 
-$("#questions-input-table, #organisers-input-table, #trustees-input-table").sortable({
+$("#polls-input-table, #organisers-input-table, #trustees-input-table").sortable({
     items: "tr",
     update: update
 });
@@ -864,6 +936,28 @@ function isDialogFormValid() {
     return pollQValid && optsValid && minMaxSelValid;
 }
 
+function updateSelectionsMaxAtrr() {
+    var minInput = $('#minimum-input-' + pollCount);
+    var maxInput = $('#maximum-input-' + pollCount);
+
+    // Get the vals from the selection inputs and update them if they exceed the new max
+    var minInputVal = minInput.val();
+
+    if(minInputVal !== '' && (minInputVal > numOfOpts)) {
+        minInput.val(numOfOpts);
+    }
+
+    var maxInputVal = maxInput.val();
+
+    if(maxInputVal !== '' && (maxInputVal > numOfOpts)) {
+        maxInput.val(numOfOpts);
+    }
+
+    // Finally update the max attr to include the new total num of opts
+    minInput.attr("max", numOfOpts);
+    maxInput.attr("max", numOfOpts);
+}
+
 $('.formset-add').click(function (e) { // Ported from DEMOS1
     var formsetPrefix = $(this).attr('data-formset-prefix');
     var formset = $('.formset[data-formset-prefix="' + formsetPrefix + '"]');
@@ -871,10 +965,19 @@ $('.formset-add').click(function (e) { // Ported from DEMOS1
     var emptyFormCheckedInputs = emptyForm.find('input:checkbox:checked, input:radio:checked');
     var form = emptyForm.clone(true).removeClass('formset-form-empty');
 
-    // Update the IDs of the inputs of the dialogs based on the number of questions
-    if(formsetPrefix === "questions") {
-        // Update the IDs and names of all of the cloned input form fields
-        updateQuestionFormInputs(form);
+    switch (formsetPrefix) {
+        case "polls":
+            // Update the IDs and names of all of the cloned input form fields based on the number of polls
+            updateQuestionFormInputs(form);
+
+            // 2 is the default number shown upon the launch of the dialog
+            numOfOpts = 2;
+            break;
+        case "options-" + pollCount:
+            numOfOpts++;
+            updateSelectionsMaxAtrr();
+            clearError("options-input-error-block-" + pollCount);
+            break;
     }
 
     var formIndex = formset.children('.formset-form:not(.formset-form-empty)').length;
@@ -912,7 +1015,13 @@ $('.formset-form-remove').click(function (e) { // Ported from DEMOS1
 
     // Perform validation now that a row has been removed
     switch (formPrefix) {
+        case 'poll':
+            // TODO: A poll has been removed so we need to update the poll count
+            break;
         case 'option':
+            // Decrement the number of total options and validate the options list
+            numOfOpts--;
+            updateSelectionsMaxAtrr();
             validateFormField(isPollOptionsValid, "options-input-error-block-" + pollCount);
             break;
         case 'organiser':
@@ -935,7 +1044,10 @@ $('.formset-form-save').click(function (e) {
         form.find('.formset-form-name:first').text(name);
         modal.data('formSave', true);
         modal.modal('hide');
+
+        // Increment the poll count and clear any validation errors
         pollCount++;
+        clearError("polls-input-error-block");
     } else {
         //highlightErrors();
     }

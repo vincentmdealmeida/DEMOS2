@@ -27,6 +27,7 @@ urlpatterns = [
     url(r'^(?P<event_id>[0-9]+)/encrypt/$', login_required(views.event_addec), name='enc-event'),
     url(r'^(?P<pk>[0-9]+)/launch/$', views.EventDetailLaunchView.as_view(), name='launch-event'),
     url(r'^edit/(?P<event_id>[0-9]+)/$', login_required(views.edit_event), name='edit-event'),
+    url(r'^delete/(?P<event_id>[0-9]+)/$', login_required(views.del_event), name='del-event'),
     url(r'^(?P<event_id>[0-9]+)/create/poll/$', login_required(views.manage_questions), name='create-poll'),
     url(r'^(?P<event_id>[0-9]+)/poll/(?P<poll_num>[0-9]+)/$', login_required(views.view_poll), name='view-poll'),
     url(r'^(?P<event_id>[0-9]+)/poll/(?P<poll_num>[0-9]+)/edit$', login_required(views.edit_poll), name='edit-poll'),

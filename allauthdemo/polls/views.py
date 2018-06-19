@@ -297,7 +297,7 @@ def create_event(request):
         # TODO: Based on whether validation was successful within update model and whether
         # TODO: data was actually persisted, either perform a redirect (success) or flag an error
 
-        return HttpResponseRedirect("/event/")
+        return HttpResponseRedirect(reverse('polls:index'))
     elif request.method == "GET":
         # Obtain context data for the rendering of the html template
         events = Event.objects.all()
@@ -353,6 +353,14 @@ def edit_event(request, event_id):
         #trustee_formset = TrusteeFormSet(request.POST, prefix="formset_trustee", instance=event)
 
 #class CreatePoll(generic.View):
+
+def del_event(request, event_id):
+    event = get_object_or_404(Event, pk=event_id)
+    if request.method == "GET":
+        return render(request, "polls/del_event.html", {"event_title": event.title, "event_id": event.id})
+    elif request.method == "POST":
+        event.delete()
+        return HttpResponseRedirect(reverse('polls:index'))
 
 def can_vote(user, event):
     if event.voters.filter(email=user.email).exists():
