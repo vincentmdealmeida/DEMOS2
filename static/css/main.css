@@ -137,11 +137,15 @@ div.formset_object {
   background-image: linear-gradient(to bottom, rgb(242, 222, 222) 0, rgb(242, 203, 208) 100%);
 }
 
-/* Error */
+/* Error / Success */
 .errorText {
   margin-top: 0.5em;
   font-weight: bold;
   color: red;
+}
+
+.successText {
+  color: green;
 }
 
 /* File uploading */

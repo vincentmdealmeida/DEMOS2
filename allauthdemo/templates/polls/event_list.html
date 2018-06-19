@@ -41,7 +41,7 @@
                            <a href="{% url 'polls:edit-event' event.id %}">
                               <span class="btn btn-default glyphicon glyphicon-pencil"></span>
                            </a>
-                           <a href="#">
+                           <a href="{% url 'polls:del-event' event.id %}">
                               <span class="btn btn-default glyphicon glyphicon-trash"></span>
                            </a>
                        </td>

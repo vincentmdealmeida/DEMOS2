@@ -31,7 +31,6 @@
 <!-- The following UI was ported from the Election Authority UI in DEMOS1 by Vincent de Almeida -->
 <!-- The DEMOS1 repository can be found at: https://github.com/mlevogiannis/demos-voting -->
 <!-- TODO: look into i18n translations as this was a feature implemented in DEMOS1 -->
-<hr/>
 <div class="container">
     <div class="page-header">
         <h2>Create New Event with Polls</h2>
@@ -105,6 +104,9 @@
                       <span id="vote-end-input-error-block" class="help-block errorText">
                         <!-- Errors flagged here -->
                       </span>
+                      <span id="event-timings-error-block" class="help-block errorText">
+                        <!-- Errors flagged here -->
+                      </span>
                   </div>
                 </div>
                 <!-- Questions -->
@@ -112,7 +114,7 @@
                   <label for="questions-input" class="col-sm-3 col-md-2 control-label">Polls:</label> <!-- This text can be a template variable -->
                   <div class="col-sm-9 col-md-10">
                     <div class="form-group">
-                        <table id="questions-input-table" class="table table-hover">
+                        <table id="polls-input-table" class="table table-hover">
                           <thead>
                             <tr>
                               <th class="text-center">#</th>
@@ -120,9 +122,9 @@
                               <th class="text-center">Actions</th>
                             </tr>
                           </thead>
-                          <tbody class="formset questions-formset" data-formset-prefix="questions" data-formset-type="modal" data-formset-modal-title="Add a New Poll">
-                            <!-- Question / Statement -->
-                            <tr class="formset-form formset-form-empty hidden" data-formset-form-prefix="question">
+                          <tbody class="formset questions-formset" data-formset-prefix="polls" data-formset-type="modal" data-formset-modal-title="Add a New Poll">
+                            <!-- Poll -->
+                            <tr class="formset-form formset-form-empty hidden" data-formset-form-prefix="poll">
                               <!-- # -->
                               <td class="formset-form-index text-center" scope=row>
                                 1
@@ -228,7 +230,7 @@
                                           </table>
                                           <div class="clearfix">
                                               <button type="button" class="btn btn-primary formset-add" data-formset-prefix="options">
-                                                <i class="fa fa-plus-circle" aria-hidden="true"></i>
+                                                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
                                                 Add Poll Option
                                               </button>
                                           </div>
@@ -245,11 +247,11 @@
                                         <div class="row">
                                                 <div class="col-xs-6">
                                                   <label class="sr-only" for="minimum-input">Minimum</label>
-                                                  <input type="number" class="form-control min-input" id="minimum-input" placeholder="Minimum" value="" name="minimum-input" min="0"> <!-- TODO: Max should be set to the number of options -->
+                                                  <input type="number" class="form-control min-input" id="minimum-input" placeholder="Minimum" value="" name="minimum-input" min="0" max="2"> <!-- Max is the default number of options initially displayed (2) -->
                                                 </div>
                                                 <div class="col-xs-6">
                                                   <label class="sr-only" for="maximum-input">Maximum</label>
-                                                  <input type="number" class="form-control max-input" id="maximum-input" placeholder="Maximum" value="" name="maximum-input" min="1"> <!-- TODO: Max should be set to the number of options -->
+                                                  <input type="number" class="form-control max-input" id="maximum-input" placeholder="Maximum" value="" name="maximum-input" min="1" max="2"> <!-- Max is the default number of options initially displayed (2) -->
                                                 </div>
                                           </div>
                                           <span id="question-input-help-block" class="help-block">
@@ -265,21 +267,21 @@
                           </tbody>
                         </table>
                         <div class="clearfix">
-                          <button type="button" class="btn btn-primary formset-add" data-formset-prefix="questions">
-                            <i class="fa fa-plus-circle" aria-hidden="true"></i>
+                          <button type="button" class="btn btn-primary formset-add" data-formset-prefix="polls">
+                            <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
                             Add Poll
                           </button>
                         </div>
                         <span id="question-input-help-block" class="help-block">
                             Drag and drop to re-order polls.
                         </span>
-                        <span id="question-input-error-block" class="help-block errorText">
+                        <span id="polls-input-error-block" class="help-block errorText">
                             <!-- Errors flagged here -->
                         </span>
                       </div>
                   </div>
                 </div>
-                <!-- Number of Polls -->
+                <!-- { Hidden field: Number of Polls } -->
                 <input type="number" id="poll-count-input" name="poll-count-input" class="hidden">
                 <!-- Organisers -->
                 <div class="form-group">
@@ -357,7 +359,7 @@
                         </table>
                         <div class="clearfix">
                           <button type="button" class="btn btn-primary formset-add" data-formset-prefix="organisers">
-                            <i class="fa fa-plus-circle" aria-hidden="true"></i>
+                            <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
                             Add Organiser Email
                           </button>
                         </div>
@@ -446,7 +448,7 @@
                         </table>
                         <div class="clearfix">
                           <button type="button" class="btn btn-primary formset-add" data-formset-prefix="trustees">
-                            <i class="fa fa-plus-circle" aria-hidden="true"></i>
+                            <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
                             Add Trustee Email
                           </button>
                         </div>
@@ -468,10 +470,11 @@
                         Manually enter email addresses separated with commas. Alternatively, you can also upload a CSV file:
                       </span>
                       <label for="files" class="btn btn-primary">
-                            Upload CSV
+                          <span class="glyphicon glyphicon-cloud-upload"></span>
+                          Upload CSV
                       </label>
                       <input type="file" id="files" name="file" class="btn-info">
-                      <h4 id="result" class="hidden"></h4>
+                      <h4 id="result" class="hidden successText"></h4>
                         <span id="voters-input-error-block" class="help-block errorText">
                             <!-- Errors flagged here -->
                         </span>
