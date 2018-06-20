@@ -1,4 +1,5 @@
 // Form submission and validation
+var updateModes = {create: 1, update: 2, delete: 3};
 var submitBtn = $("#submit-event-create");
 var submitBtnLabel = "Create Event";
 var submitBtnWaitLabel = "Please wait...";
@@ -10,6 +11,8 @@ var generalErrorBlock = document.getElementById('all-errors-help-block');
 var errors = [];
 var create = true;
 var pollCount = 0;
+var pollIndex = 0;
+var pollEditActive = false;
 var numOfOpts = 2;
 
 function finalisePolls() {
@@ -278,12 +281,12 @@ function isPollQValid() {
     var valid = true;
 
     // Check question is valid
-    var question = $('#question-name-input-' + pollCount).val();
+    var question = $('#question-name-input-' + pollIndex).val();
 
     if(question === '') {
         checkAndAddError({
             error: "Question / Statement for the poll is blank.",
-            helpBlockId: "question-input-error-block-" + pollCount
+            helpBlockId: "question-input-error-block-" + pollIndex
         });
 
         valid = false;
@@ -294,8 +297,8 @@ function isPollQValid() {
 
 function isPollOptionsValid() {
     var valid = true;
-    var optsInputs = $('.option-formset #option-name-input-' + pollCount);
-    var helpBlockId = "options-input-error-block-" + pollCount;
+    var optsInputs = $('.option-formset #option-name-input-' + pollIndex);
+    var helpBlockId = "options-input-error-block-" + pollIndex;
 
     if(numOfOpts < 1) {
         checkAndAddError({
@@ -337,10 +340,10 @@ function isPollOptionsValid() {
 
 function isMinMaxSelectionValid() {
     var valid = true;
-    var minInput = $('#minimum-input-' + pollCount);
+    var minInput = $('#minimum-input-' + pollIndex);
     var minInputMinAttr = parseInt(minInput[0].min);
     var minInputVal = minInput.val();
-    var helpBlockId = "selections-input-error-block-" + pollCount;
+    var helpBlockId = "selections-input-error-block-" + pollIndex;
     var errorStr = "";
 
     if(minInputVal === "" || minInputVal < minInputMinAttr) {
@@ -351,7 +354,7 @@ function isMinMaxSelectionValid() {
         valid = false;
     }
 
-    var maxInput = $('#maximum-input-' + pollCount);
+    var maxInput = $('#maximum-input-' + pollIndex);
     var maxInputMinAttr = parseInt(maxInput[0].min);
     var maxInputVal = maxInput.val();
 
@@ -365,7 +368,7 @@ function isMinMaxSelectionValid() {
         valid = false;
     } else if (maxInputVal > numOfOpts) {
         if (errorStr !== '') {
-            errorStr = errorStr + " and the same applies to the maximum";
+            errorStr = errorStr + " and the maximum cannot be more than the number of options (" + numOfOpts + ")";
         } else {
             errorStr = "The maximum option selection value (" + maxInputVal + ") cannot be more than the number of options (" + numOfOpts + ")";
         }
@@ -803,14 +806,14 @@ function updateFormset(formset) { // Ported from DEMOS 1. Updates the row number
     var forms = formset.children('.formset-form:not(.formset-form-empty, .formset-form-removed)');
     var removedForms = formset.children('.formset-form.formset-form-removed');
     forms.each(function(index) {
-        updateForm($(this), index);
+        updateForm($(this), index, updateModes.update);
     });
     removedForms.each(function(index) {
-        updateForm($(this), forms.length + index);
+        updateForm($(this), forms.length + index, updateModes.delete);
     });
 }
 
-function updateForm(form, formIndex) { // Ported from DEMOS 1.
+function updateForm(form, formIndex, mode) { // Ported from DEMOS 1.
     // Specific update for option forms
     var mayBeTextInput = form.find('input:text')[0];
     if(mayBeTextInput !== undefined && mayBeTextInput.placeholder !== undefined) {
@@ -825,6 +828,16 @@ function updateForm(form, formIndex) { // Ported from DEMOS 1.
 
     var formset = form.parent('.formset');
     var formsetPrefix = formset.attr('data-formset-prefix');
+
+    if (formsetPrefix === 'polls' && mode === updateModes.update) {
+        // Get a reference to the fields that need updating from the form including the table
+        var formFields = form.find('.formset-form-fields:first >');
+        var table = form.find('.table:first');
+
+        // Perform the ID updates on the fields based on the poll index
+        performFormInputUpdates(formFields, table, formIndex);
+    }
+
     var formPrefix = formsetPrefix + '-' + formIndex;
     var formPrefixRegex = new RegExp(formsetPrefix + '-(?:__prefix__|\\d+)');
     form.find('*').addBack().each(function(index, element) {
@@ -848,54 +861,61 @@ function manageTotalForms(formset, value) { // Ported from DEMOS1.
     addButton.prop('disabled', parseInt(totalForms.val()) - removedForms.length >= parseInt(maxNumForms.val()));
 }
 
-function updateQuestionFormInputs(form) {
-    // Update the name and IDs of all the dialog input fields
+function updatePollFormInputs(form) {
+    // Obtain the cloned input fields for the dialog in order to update them
     var clonedFields = form.find('.formset-form-fields:first >');
 
-    // Update the table ID
+    // Obtain a reference to the options table
     var table = form.find('.table:first');
-    table.attr("id", "options-table-" + pollCount);
+
+    // Perform the ID updates on the fields based on the poll index
+    performFormInputUpdates(clonedFields, table, pollIndex);
+}
+
+function performFormInputUpdates(fields, table, index) {
+    // Update the table ID
+    table.attr("id", "options-table-" + index);
 
     // Update the poll question / statement ID
-    clonedFields.find(".dialogQ:first")
-        .attr("id", "question-name-input-" + pollCount)
-        .attr("name", "question-name-input-" + pollCount);
+    fields.find(".dialogQ:first")
+        .attr("id", "question-name-input-" + index)
+        .attr("name", "question-name-input-" + index);
 
     // Update one of the help block IDs for various sections of the dialog
-    var pollQuestionErrorHelpBlock = clonedFields.find("#question-input-error-block");
-    pollQuestionErrorHelpBlock.attr("id", "question-input-error-block-" + pollCount);
+    var pollQuestionErrorHelpBlock = fields.find("#question-input-error-block");
+    pollQuestionErrorHelpBlock.attr("id", "question-input-error-block-" + index);
 
-    var pollOptionsErrorHelpBlock = clonedFields.find("#options-input-error-block");
-    pollOptionsErrorHelpBlock.attr("id", "options-input-error-block-" + pollCount);
+    var pollOptionsErrorHelpBlock = fields.find("#options-input-error-block");
+    pollOptionsErrorHelpBlock.attr("id", "options-input-error-block-" + index);
 
-    var pollSelectionsErrorHelpBlock = clonedFields.find("#selections-input-error-block");
-    pollSelectionsErrorHelpBlock.attr("id", "selections-input-error-block-" + pollCount);
+    var pollSelectionsErrorHelpBlock = fields.find("#selections-input-error-block");
+    pollSelectionsErrorHelpBlock.attr("id", "selections-input-error-block-" + index);
 
     // Update the poll option input IDs
-    var optsInputs = clonedFields.find(".dialogO");
+    var optsInputs = fields.find(".dialogO");
 
     for(var i = 0; i < optsInputs.length; i++) {
         var input = optsInputs[i];
-        input.id = "option-name-input-" + pollCount;
-        input.name = "option-name-input-" + pollCount;
+        input.id = "option-name-input-" + index;
+        input.name = "option-name-input-" + index;
     }
 
     // Update the data-formset-prefix for correct referencing
-    var dataFormsetPrefix = "options-" + pollCount;
-    var optionFormSet = clonedFields.find(".option-formset");
+    var dataFormsetPrefix = "options-" + index;
+    var optionFormSet = fields.find(".option-formset");
     optionFormSet.attr("data-formset-prefix", dataFormsetPrefix);
 
-    var addPollOptBtn = clonedFields.find('.formset-add');
+    var addPollOptBtn = fields.find('.formset-add');
     addPollOptBtn.attr("data-formset-prefix", dataFormsetPrefix);
 
     // Update the poll min and max selection
-    clonedFields.find(".min-input:first")
-        .attr("id", "minimum-input-" + pollCount)
-        .attr("name", "minimum-input-" + pollCount);
+    fields.find(".min-input:first")
+        .attr("id", "minimum-input-" + index)
+        .attr("name", "minimum-input-" + index);
 
-    clonedFields.find(".max-input:first")
-        .attr("id", "maximum-input-" + pollCount)
-        .attr("name", "maximum-input-" + pollCount);
+    fields.find(".max-input:first")
+        .attr("id", "maximum-input-" + index)
+        .attr("name", "maximum-input-" + index);
 }
 
 function isDialogFormValid() {
@@ -904,7 +924,7 @@ function isDialogFormValid() {
     var minMaxSelValid = true;
 
     // Check question is valid
-    var pollQErrorHelpBlockId = "question-input-error-block-" + pollCount;
+    var pollQErrorHelpBlockId = "question-input-error-block-" + pollIndex;
     pollQValid = isPollQValid();
 
     if(pollQValid === true) {
@@ -914,7 +934,7 @@ function isDialogFormValid() {
     }
 
     // Check opts are valid
-    var pollOptsErrorHelpBlockId = "options-input-error-block-" + pollCount;
+    var pollOptsErrorHelpBlockId = "options-input-error-block-" + pollIndex;
     optsValid = isPollOptionsValid();
 
     if(optsValid === true) {
@@ -924,7 +944,7 @@ function isDialogFormValid() {
     }
 
     // Check min and max selections are valid
-    var pollSelErrorHelpBlockId = "selections-input-error-block-" + pollCount;
+    var pollSelErrorHelpBlockId = "selections-input-error-block-" + pollIndex;
     minMaxSelValid = isMinMaxSelectionValid();
 
     if(minMaxSelValid === true) {
@@ -937,8 +957,8 @@ function isDialogFormValid() {
 }
 
 function updateSelectionsMaxAtrr() {
-    var minInput = $('#minimum-input-' + pollCount);
-    var maxInput = $('#maximum-input-' + pollCount);
+    var minInput = $('#minimum-input-' + pollIndex);
+    var maxInput = $('#maximum-input-' + pollIndex);
 
     // Get the vals from the selection inputs and update them if they exceed the new max
     var minInputVal = minInput.val();
@@ -967,23 +987,29 @@ $('.formset-add').click(function (e) { // Ported from DEMOS1
 
     switch (formsetPrefix) {
         case "polls":
-            // Update the IDs and names of all of the cloned input form fields based on the number of polls
-            updateQuestionFormInputs(form);
+            // Set the index
+            pollIndex = pollCount;
 
-            // 2 is the default number shown upon the launch of the dialog
+            // Update the IDs and names of all of the cloned input form fields based on the number of polls
+            updatePollFormInputs(form);
+
+            // 2 is the default number of opts shown upon the launch of the dialog
             numOfOpts = 2;
+
+            // New poll is being created so edit mode hasn't been activated
+            pollEditActive = false;
             break;
-        case "options-" + pollCount:
+        case "options-" + pollIndex:
             numOfOpts++;
             updateSelectionsMaxAtrr();
-            clearError("options-input-error-block-" + pollCount);
+            clearError("options-input-error-block-" + pollIndex);
             break;
     }
 
     var formIndex = formset.children('.formset-form:not(.formset-form-empty)').length;
 
     formset.append(form);
-    updateForm(form, formIndex);
+    updateForm(form, formIndex, updateModes.create);
     emptyFormCheckedInputs.each(function (index) {
         $(this).prop('checked', true);
     });
@@ -1010,19 +1036,23 @@ $('.formset-form-remove').click(function (e) { // Ported from DEMOS1
         form.remove();
         manageTotalForms(formset, -1);
     }
+
+    // We need to reduce the poll count if we've removed a poll
+    if(formPrefix === "poll") {
+        pollCount--;
+    }
+
+    // Update the formset and inform that a form has been removed
     updateFormset(formset);
     formset.trigger('formsetFormRemoved');
 
-    // Perform validation now that a row has been removed
+    // Perform validation and other operations now that a row has been removed based on the affected table
     switch (formPrefix) {
-        case 'poll':
-            // TODO: A poll has been removed so we need to update the poll count
-            break;
         case 'option':
             // Decrement the number of total options and validate the options list
             numOfOpts--;
             updateSelectionsMaxAtrr();
-            validateFormField(isPollOptionsValid, "options-input-error-block-" + pollCount);
+            validateFormField(isPollOptionsValid, "options-input-error-block-" + pollIndex);
             break;
         case 'organiser':
             validateFormField(areOrganisersEmailsValid, "organisers-input-error-block");
@@ -1037,25 +1067,35 @@ $('.formset-form-save').click(function (e) {
     var dialogValid = isDialogFormValid();
 
     if(dialogValid === true) {
-        // TODO: Clear errors
         var modal = $(this).closest('.modal');
         var form = modal.data('form');
-        var name = $('#question-name-input-' + pollCount).val();
+        var name = $('#question-name-input-' + pollIndex).val();
         form.find('.formset-form-name:first').text(name);
         modal.data('formSave', true);
         modal.modal('hide');
 
-        // Increment the poll count and clear any validation errors
-        pollCount++;
+        if(!pollEditActive) {
+            // Increment the poll count and clear any validation errors
+            pollCount++;
+        } else {
+            pollEditActive = false;
+        }
+
         clearError("polls-input-error-block");
-    } else {
-        //highlightErrors();
     }
 });
 
+function extractPollIndexFromId(id) {
+    var idSplitArray = id.split('-');
+    pollIndex = parseInt(idSplitArray[3]);
+}
+
 $('.formset-form-edit').click(function (e) {
     var form = $(this).closest('.formset-form');
+    var questionNameInput = form.find('.formset-form-fields:first > .dialogFormField > .dialogQ');
+    extractPollIndexFromId(questionNameInput.attr('id'));
     $('#formset-modal').data('form', form).modal('show');
+    pollEditActive = true;
 });
 
 $('#formset-modal').on('show.bs.modal', function (e) { // Ported from DEMOS1
@@ -1074,7 +1114,7 @@ $('#formset-modal').on('show.bs.modal', function (e) { // Ported from DEMOS1
     formset.trigger('formsetModalShow', [modalBody]);
 
     // Attach an event handler for poll option row sorting
-    $("#options-table-" + pollCount).sortable({
+    $("#options-table-" + pollIndex).sortable({
         items: "tr",
         update: update
     });
