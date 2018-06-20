@@ -45,8 +45,8 @@ class CreateNewEventModelAdaptor:
         self.form_data = form_data.copy()
         self.user = user
         # TODO: Call validation func here (incl functionality for verifying CSRF + reCAPTCHA)
-        print("Form Data:")
-        print(self.form_data)
+        #print("Form Data:")
+        #print(self.form_data)
         self.__extractData()
 
 
