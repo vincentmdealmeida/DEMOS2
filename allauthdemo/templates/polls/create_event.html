@@ -44,12 +44,13 @@
                 <div class="form-group">
                   <label for="name-input" class="col-sm-3 col-md-2 control-label">Name:</label> <!-- This text can be a template variable -->
                   <div class="col-sm-9 col-md-10">
-                    <input type="text" class="form-control input-control" id="name-input" placeholder="Example: EU Election" name="name-input" maxlength="255">
+                    <input type="text" class="form-control input-control" id="name-input" placeholder="Example: EU Election" name="name-input" maxlength="255" {% if invalid_fields %}value="{{ invalid_fields.event_name_data.val }}"{% endif %}>
                     <span id="name-input-hint-block" class="help-block">
                         A short and clear name.
                     </span>
                     <span id="name-input-error-block" class="help-block errorText">
                         <!-- Errors flagged here -->
+                        {% if invalid_fields.event_name %}{{ invalid_fields.event_name.error }}{% endif %}
                     </span>
                   </div>
                 </div>
@@ -57,12 +58,13 @@
                 <div class="form-group">
                   <label for="identifier-input" class="col-sm-3 col-md-2 control-label">Identifier:</label> <!-- This text can be a template variable -->
                   <div class="col-sm-9 col-md-10">
-                    <input type="text" class="form-control input-control" id="identifier-input" placeholder="Example: eu-election" name="identifier-input" maxlength="255">
+                    <input type="text" class="form-control input-control" id="identifier-input" placeholder="Example: eu-election" name="identifier-input" maxlength="255" {% if invalid_fields %}value="{{ invalid_fields.identifier_data.val }}"{% endif %}>
                       <span id="identifier-input-help-block" class="help-block">
                         Used in the election URL, it must only consist of letters, numbers, underscores or hyphens; no whitespace is permitted.
                       </span>
                       <span id="identifier-input-error-block" class="help-block errorText">
                         <!-- Errors flagged here -->
+                          {% if invalid_fields.identifier %}{{ invalid_fields.identifier.error }}{% endif %}
                       </span>
                   </div>
                 </div>
@@ -71,7 +73,7 @@
                   <label for="vote-start-input" class="col-sm-3 col-md-2 control-label">Voting starts at:</label>
                   <div class="col-sm-9 col-md-10">
                     <div class="input-group date">
-                      <input type="text" class="form-control input-control" data-date-format="YYYY-MM-DD H:mm Z" id="vote-start-input" name="vote-start-input">
+                      <input type="text" class="form-control input-control" data-date-format="YYYY-MM-DD H:mm Z" id="vote-start-input" name="vote-start-input" {% if invalid_fields %}value="{{ invalid_fields.starts_at_data.val }}"{% endif %}>
                       <span class="input-group-addon btn">
                         <i class="fa fa-calendar" aria-hidden="true"></i>
                         /
@@ -83,6 +85,7 @@
                     </span>
                       <span id="vote-start-input-error-block" class="help-block errorText">
                         <!-- Errors flagged here -->
+                          {% if invalid_fields.starts_at %}{{ invalid_fields.starts_at.error }}{% endif %}
                       </span>
                   </div>
                 </div>
@@ -91,7 +94,7 @@
                   <label for="vote-end-input" class="col-sm-3 col-md-2 control-label">Voting ends at:</label>
                   <div class="col-sm-9 col-md-10">
                     <div class="input-group date">
-                      <input type="text" class="form-control input-control" data-date-format="YYYY-MM-DD H:mm Z" id="vote-end-input" name="vote-end-input">
+                      <input type="text" class="form-control input-control" data-date-format="YYYY-MM-DD H:mm Z" id="vote-end-input" name="vote-end-input" {% if invalid_fields %}value="{{ invalid_fields.ends_at_data.val }}"{% endif %}>
                       <span class="input-group-addon btn">
                         <i class="fa fa-calendar" aria-hidden="true"></i>
                         /
@@ -103,9 +106,11 @@
                     </span>
                       <span id="vote-end-input-error-block" class="help-block errorText">
                         <!-- Errors flagged here -->
+                          {% if invalid_fields.ends_at %}{{ invalid_fields.ends_at.error }}{% endif %}
                       </span>
                       <span id="event-timings-error-block" class="help-block errorText">
                         <!-- Errors flagged here -->
+                          {% if invalid_fields.event_timings %}{{ invalid_fields.event_timings.error }}{% endif %}
                       </span>
                   </div>
                 </div>
@@ -123,147 +128,278 @@
                             </tr>
                           </thead>
                           <tbody class="formset questions-formset" data-formset-prefix="polls" data-formset-type="modal" data-formset-modal-title="Add a New Poll">
-                            <!-- Poll -->
-                            <tr class="formset-form formset-form-empty hidden" data-formset-form-prefix="poll">
-                              <!-- # -->
-                              <td class="formset-form-index text-center" scope=row>
-                                1
-                              </td>
-                              <!-- Question / Statement Label -->
-                              <th class="formset-form-name">
-                                <!-- Q Label Goes Here -->
-                              </th>
-                              <td class="formset-form-actions text-center">
-                                <button type="button" class="btn btn-sm btn-default formset-form-edit" aria-label="Edit">
-                                  <i class="fa fa-pencil-square-o" aria-hidden="true"></i>
-                                </button>
-                                <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
-                                  <i class="fa fa-trash-o" aria-hidden="true"></i>
-                                </button>
-                              </td>
-                              <td class="hidden">
-                                  <div class="formset-form-fields">
-                                      <!-- Name -->
-                                      <div class="form-group dialogFormField">
-                                        <label for="question-name-input">Question / Statement</label>
-                                        <input type="text" class="form-control dialogQ" id="question-name-input" name="question-name-input" placeholder="Example: Elections for the European Parliament" maxlength="200">
-                                        <span id="question-name-input-help-block" class="help-block">
-                                          Question / Statement that will be put forward to voters along with the below options.
-                                        </span>
-                                          <span id="question-input-error-block" class="help-block errorText">
-                                              <!-- Errors flagged here -->
-                                          </span>
-                                      </div>
-                                      <!-- Options -->
-                                      <div class="form-group dialogFormField">
-                                          <label for="options-table">Options</label>
-                                          <table id="options-table" class="table table-hover">
-                                              <thead>
-                                                <tr>
-                                                  <th class="text-center">#</th>
-                                                  <th>Option</th>
-                                                  <th class="text-center">Actions</th>
-                                                </tr>
-                                              </thead>
-                                              <tbody id="sort" class="formset option-formset" data-formset-prefix="options" data-formset-type="inline">
-                                                <!-- Option -->
-                                                <tr class="formset-form sorting-row" data-formset-form-prefix="option">
-                                                  <!-- # -->
-                                                  <th class="formset-form-index text-center" scope=row>
-                                                    1
-                                                  </th>
-                                                  <!-- Option Label -->
-                                                  <td>
-                                                    <div>
-                                                      <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
-                                                        <input type="text" class="form-control input-sm input-control dialogO" placeholder="Example: Candidate 1" id="option-name-input" name="option-name-input" maxlength="200">
-                                                    </div>
-                                                  </td>
-                                                  <!-- Delete Action -->
-                                                  <td class="formset-form-actions text-center">
-                                                    <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
-                                                      <i class="fa fa-trash-o" aria-hidden="true"></i>
-                                                    </button>
-                                                  </td>
-                                                </tr>
-                                                <!-- Option -->
-                                                <tr class="formset-form sorting-row" data-formset-form-prefix="option">
-                                                  <!-- # -->
-                                                  <th class="formset-form-index text-center" scope=row>
-                                                    2
-                                                  </th>
-                                                  <!-- Option Label -->
-                                                  <td>
-                                                    <div>
-                                                        <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
-                                                        <input type="text" class="form-control input-sm input-control dialogO" placeholder="Example: Candidate 2" id="option-name-input" name="option-name-input" maxlength="200">
-                                                    </div>
-                                                  </td>
-                                                  <!-- Delete Action -->
-                                                  <td class="formset-form-actions text-center">
-                                                    <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
-                                                      <i class="fa fa-trash-o" aria-hidden="true"></i>
-                                                    </button>
-                                                  </td>
-                                                </tr>
-                                                <!-- Option -->
-                                                <tr class="formset-form sorting-row formset-form-empty hidden" data-formset-form-prefix="option">
-                                                  <!-- # -->
-                                                  <th class="formset-form-index text-center" scope=row>
-                                                    X
-                                                  </th>
-                                                  <!-- Option Label -->
-                                                  <td>
-                                                    <div>
-                                                        <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
-                                                        <input type="text" class="form-control input-sm input-control dialogO" placeholder="Example: Candidate X" id="option-name-input" name="option-name-input" maxlength="200">
-                                                    </div>
-                                                  </td>
-                                                  <!-- Delete Action -->
-                                                  <td class="formset-form-actions text-center">
-                                                    <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
-                                                      <i class="fa fa-trash-o" aria-hidden="true"></i>
-                                                    </button>
-                                                  </td>
-                                                </tr>
-                                              </tbody>
-                                          </table>
-                                          <div class="clearfix">
-                                              <button type="button" class="btn btn-primary formset-add" data-formset-prefix="options">
-                                                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                                                Add Poll Option
-                                              </button>
+                            {% if invalid_fields %}
+                                {% for poll in invalid_fields.polls_data.val %}
+                                    <!-- Poll -->
+                                    <tr class="formset-form" data-formset-form-prefix="poll">
+                                      <!-- # -->
+                                      <td class="formset-form-index text-center" scope=row>
+                                        {{ forloop.counter }}
+                                      </td>
+                                      <!-- Question / Statement Label -->
+                                      <th class="formset-form-name">
+                                        {{ poll.name.val }}
+                                      </th>
+                                      <td class="formset-form-actions text-center">
+                                        <button type="button" class="btn btn-sm btn-default formset-form-edit" aria-label="Edit">
+                                          <i class="fa fa-pencil-square-o" aria-hidden="true"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
+                                          <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                        </button>
+                                      </td>
+                                      <td class="hidden">
+                                          <div class="formset-form-fields">
+                                              <!-- Name -->
+                                              <div class="form-group dialogFormField">
+                                                <label for="question-name-input">Question / Statement</label>
+                                                <input type="text" class="form-control dialogQ" id="question-name-input-{{ poll.no.val }}" name="question-name-input-{{ poll.no.val }}" placeholder="Example: Elections for the European Parliament" maxlength="200" value="{{ poll.name.val }}">
+                                                <span id="question-name-input-help-block" class="help-block">
+                                                  Question / Statement that will be put forward to voters along with the below options.
+                                                </span>
+                                                  <span id="question-input-error-block-{{ poll.no.val }}" class="help-block errorText">
+                                                      <!-- Errors flagged here -->
+                                                      {% if poll.errors.val.name %}{{ poll.errors.val.name.val }}{% endif %}
+                                                  </span>
+                                              </div>
+                                              <!-- Options -->
+                                              <div class="form-group dialogFormField">
+                                                  <label for="options-table">Options</label>
+                                                  <table id="options-table" class="table table-hover">
+                                                      <thead>
+                                                        <tr>
+                                                          <th class="text-center">#</th>
+                                                          <th>Option</th>
+                                                          <th class="text-center">Actions</th>
+                                                        </tr>
+                                                      </thead>
+                                                      <tbody id="sort" class="formset option-formset" data-formset-prefix="options" data-formset-type="inline">
+                                                        {% for option in poll.options.val %}
+                                                            <!-- Option -->
+                                                            <tr class="formset-form sorting-row" data-formset-form-prefix="option">
+                                                              <!-- # -->
+                                                              <th class="formset-form-index text-center" scope=row>
+                                                                {{ forloop.counter }}
+                                                              </th>
+                                                              <!-- Option Label -->
+                                                              <td>
+                                                                <div>
+                                                                  <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
+                                                                    <input type="text" class="form-control input-sm input-control dialogO" placeholder="Example: Candidate 1" id="option-name-input-{{ poll.no.val }}" name="option-name-input-{{ poll.no.val }}" maxlength="200" value="{{ option }}">
+                                                                </div>
+                                                              </td>
+                                                              <!-- Delete Action -->
+                                                              <td class="formset-form-actions text-center">
+                                                                <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
+                                                                  <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                                                </button>
+                                                              </td>
+                                                            </tr>
+                                                        {% endfor %}
+                                                        <!-- Option: Hidden -->
+                                                        <tr class="formset-form sorting-row formset-form-empty hidden" data-formset-form-prefix="option">
+                                                          <!-- # -->
+                                                          <th class="formset-form-index text-center" scope=row>
+                                                            X
+                                                          </th>
+                                                          <!-- Option Label -->
+                                                          <td>
+                                                            <div>
+                                                                <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
+                                                                <input type="text" class="form-control input-sm input-control dialogO" placeholder="Example: Candidate X" id="option-name-input-{{ poll.no.val }}" name="option-name-input-{{ poll.no.val }}" maxlength="200">
+                                                            </div>
+                                                          </td>
+                                                          <!-- Delete Action -->
+                                                          <td class="formset-form-actions text-center">
+                                                            <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
+                                                              <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                                            </button>
+                                                          </td>
+                                                        </tr>
+                                                      </tbody>
+                                                  </table>
+                                                  <div class="clearfix">
+                                                      <button type="button" class="btn btn-primary formset-add" data-formset-prefix="options">
+                                                        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                                        Add Poll Option
+                                                      </button>
+                                                  </div>
+                                                  <span id="question-input-help-block" class="help-block">
+                                                      Drag and drop to re-order options.
+                                                  </span>
+                                                  <span id="options-input-error-block-{{ poll.no.val }}" class="help-block errorText">
+                                                      <!-- Errors flagged here -->
+                                                      {% if poll.errors.val.options %}{{ poll.errors.val.options.val }}{% endif %}
+                                                  </span>
+                                              </div>
+                                              <!-- Number of option selections -->
+                                              <div class="form-group dialogFormField">
+                                                <label for="selections-input" class="control-label">Number of Selections:</label> <!-- This text can be a template variable -->
+                                                <div class="row">
+                                                        <div class="col-xs-6">
+                                                          <label class="sr-only" for="minimum-input">Minimum</label>
+                                                          <input type="number" class="form-control min-input" id="minimum-input-{{ poll.no.val }}" placeholder="Minimum" value="{{ poll.min_selection.val }}" name="minimum-input-{{ poll.no.val }}" min="0" max="{{ poll.options.val.length }}"> <!-- Max is the default number of options initially displayed (2) -->
+                                                        </div>
+                                                        <div class="col-xs-6">
+                                                          <label class="sr-only" for="maximum-input">Maximum</label>
+                                                          <input type="number" class="form-control max-input" id="maximum-input-{{ poll.no.val }}" placeholder="Maximum" value="{{ poll.max_selection.val }}" name="maximum-input-{{ poll.no.val }}" min="1" max="{{ poll.options.val.length }}"> <!-- Max is the default number of options initially displayed (2) -->
+                                                        </div>
+                                                  </div>
+                                                  <span id="question-input-help-block" class="help-block">
+                                                      Minimum and maximum number of option selections that a voter can make for the specified question / statement.
+                                                  </span>
+                                                  <span id="selections-input-error-block-{{ poll.no.val }}" class="help-block errorText">
+                                                      <!-- Errors flagged here -->
+                                                      {% if poll.errors.val.min_max %}{{ poll.errors.val.min_max.val }}{% endif %}
+                                                  </span>
+                                              </div>
                                           </div>
-                                          <span id="question-input-help-block" class="help-block">
-                                              Drag and drop to re-order options.
-                                          </span>
-                                          <span id="options-input-error-block" class="help-block errorText">
-                                              <!-- Errors flagged here -->
-                                          </span>
-                                      </div>
-                                      <!-- Number of option selections -->
-                                      <div class="form-group dialogFormField">
-                                        <label for="selections-input" class="control-label">Number of Selections:</label> <!-- This text can be a template variable -->
-                                        <div class="row">
-                                                <div class="col-xs-6">
-                                                  <label class="sr-only" for="minimum-input">Minimum</label>
-                                                  <input type="number" class="form-control min-input" id="minimum-input" placeholder="Minimum" value="" name="minimum-input" min="0" max="2"> <!-- Max is the default number of options initially displayed (2) -->
-                                                </div>
-                                                <div class="col-xs-6">
-                                                  <label class="sr-only" for="maximum-input">Maximum</label>
-                                                  <input type="number" class="form-control max-input" id="maximum-input" placeholder="Maximum" value="" name="maximum-input" min="1" max="2"> <!-- Max is the default number of options initially displayed (2) -->
-                                                </div>
+                                      </td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <!-- Poll -->
+                                <tr class="formset-form formset-form-empty hidden" data-formset-form-prefix="poll">
+                                  <!-- # -->
+                                  <td class="formset-form-index text-center" scope=row>
+                                    1
+                                  </td>
+                                  <!-- Question / Statement Label -->
+                                  <th class="formset-form-name">
+                                    <!-- Q Label Goes Here -->
+                                  </th>
+                                  <td class="formset-form-actions text-center">
+                                    <button type="button" class="btn btn-sm btn-default formset-form-edit" aria-label="Edit">
+                                      <i class="fa fa-pencil-square-o" aria-hidden="true"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
+                                      <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                    </button>
+                                  </td>
+                                  <td class="hidden">
+                                      <div class="formset-form-fields">
+                                          <!-- Name -->
+                                          <div class="form-group dialogFormField">
+                                            <label for="question-name-input">Question / Statement</label>
+                                            <input type="text" class="form-control dialogQ" id="question-name-input" name="question-name-input" placeholder="Example: Elections for the European Parliament" maxlength="200">
+                                            <span id="question-name-input-help-block" class="help-block">
+                                              Question / Statement that will be put forward to voters along with the below options.
+                                            </span>
+                                              <span id="question-input-error-block" class="help-block errorText">
+                                                  <!-- Errors flagged here -->
+                                              </span>
                                           </div>
-                                          <span id="question-input-help-block" class="help-block">
-                                              Minimum and maximum number of option selections that a voter can make for the specified question / statement.
-                                          </span>
-                                          <span id="selections-input-error-block" class="help-block errorText">
-                                              <!-- Errors flagged here -->
-                                          </span>
+                                          <!-- Options -->
+                                          <div class="form-group dialogFormField">
+                                              <label for="options-table">Options</label>
+                                              <table id="options-table" class="table table-hover">
+                                                  <thead>
+                                                    <tr>
+                                                      <th class="text-center">#</th>
+                                                      <th>Option</th>
+                                                      <th class="text-center">Actions</th>
+                                                    </tr>
+                                                  </thead>
+                                                  <tbody id="sort" class="formset option-formset" data-formset-prefix="options" data-formset-type="inline">
+                                                    <!-- Option -->
+                                                    <tr class="formset-form sorting-row" data-formset-form-prefix="option">
+                                                      <!-- # -->
+                                                      <th class="formset-form-index text-center" scope=row>
+                                                        1
+                                                      </th>
+                                                      <!-- Option Label -->
+                                                      <td>
+                                                        <div>
+                                                          <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
+                                                            <input type="text" class="form-control input-sm input-control dialogO" placeholder="Example: Candidate 1" id="option-name-input" name="option-name-input" maxlength="200">
+                                                        </div>
+                                                      </td>
+                                                      <!-- Delete Action -->
+                                                      <td class="formset-form-actions text-center">
+                                                        <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
+                                                          <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                                        </button>
+                                                      </td>
+                                                    </tr>
+                                                    <!-- Option -->
+                                                    <tr class="formset-form sorting-row" data-formset-form-prefix="option">
+                                                      <!-- # -->
+                                                      <th class="formset-form-index text-center" scope=row>
+                                                        2
+                                                      </th>
+                                                      <!-- Option Label -->
+                                                      <td>
+                                                        <div>
+                                                            <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
+                                                            <input type="text" class="form-control input-sm input-control dialogO" placeholder="Example: Candidate 2" id="option-name-input" name="option-name-input" maxlength="200">
+                                                        </div>
+                                                      </td>
+                                                      <!-- Delete Action -->
+                                                      <td class="formset-form-actions text-center">
+                                                        <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
+                                                          <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                                        </button>
+                                                      </td>
+                                                    </tr>
+                                                    <!-- Option: Hidden -->
+                                                    <tr class="formset-form sorting-row formset-form-empty hidden" data-formset-form-prefix="option">
+                                                      <!-- # -->
+                                                      <th class="formset-form-index text-center" scope=row>
+                                                        X
+                                                      </th>
+                                                      <!-- Option Label -->
+                                                      <td>
+                                                        <div>
+                                                            <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
+                                                            <input type="text" class="form-control input-sm input-control dialogO" placeholder="Example: Candidate X" id="option-name-input" name="option-name-input" maxlength="200">
+                                                        </div>
+                                                      </td>
+                                                      <!-- Delete Action -->
+                                                      <td class="formset-form-actions text-center">
+                                                        <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
+                                                          <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                                        </button>
+                                                      </td>
+                                                    </tr>
+                                                  </tbody>
+                                              </table>
+                                              <div class="clearfix">
+                                                  <button type="button" class="btn btn-primary formset-add" data-formset-prefix="options">
+                                                    <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                                                    Add Poll Option
+                                                  </button>
+                                              </div>
+                                              <span id="question-input-help-block" class="help-block">
+                                                  Drag and drop to re-order options.
+                                              </span>
+                                              <span id="options-input-error-block" class="help-block errorText">
+                                                  <!-- Errors flagged here -->
+                                              </span>
+                                          </div>
+                                          <!-- Number of option selections -->
+                                          <div class="form-group dialogFormField">
+                                            <label for="selections-input" class="control-label">Number of Selections:</label> <!-- This text can be a template variable -->
+                                            <div class="row">
+                                                    <div class="col-xs-6">
+                                                      <label class="sr-only" for="minimum-input">Minimum</label>
+                                                      <input type="number" class="form-control min-input" id="minimum-input" placeholder="Minimum" value="" name="minimum-input" min="0" max="2"> <!-- Max is the default number of options initially displayed (2) -->
+                                                    </div>
+                                                    <div class="col-xs-6">
+                                                      <label class="sr-only" for="maximum-input">Maximum</label>
+                                                      <input type="number" class="form-control max-input" id="maximum-input" placeholder="Maximum" value="" name="maximum-input" min="1" max="2"> <!-- Max is the default number of options initially displayed (2) -->
+                                                    </div>
+                                              </div>
+                                              <span id="question-input-help-block" class="help-block">
+                                                  Minimum and maximum number of option selections that a voter can make for the specified question / statement.
+                                              </span>
+                                              <span id="selections-input-error-block" class="help-block errorText">
+                                                  <!-- Errors flagged here -->
+                                              </span>
+                                          </div>
                                       </div>
-                                  </div>
-                              </td>
-                            </tr>
+                                  </td>
+                                </tr>
+                            {% endif %}
                           </tbody>
                         </table>
                         <div class="clearfix">
@@ -277,6 +413,7 @@
                         </span>
                         <span id="polls-input-error-block" class="help-block errorText">
                             <!-- Errors flagged here -->
+                            {% if invalid_fields.polls_errors %}{{ invalid_fields.polls_errors.error }}{% endif %}
                         </span>
                       </div>
                   </div>
@@ -297,64 +434,108 @@
                             </tr>
                           </thead>
                           <tbody class="formset organiser-formset" data-formset-prefix="organisers" data-formset-type="inline">
-                            <!-- Organiser -->
-                            <tr class="formset-form sorting-row" data-formset-form-prefix="organiser">
-                              <th class="formset-form-index text-center" scope=row>
-                                <!-- # -->
-                                1
-                              </th>
-                              <td>
-                                <!-- Email -->
-                                <div>
-                                  <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
-                                    <input type="text" class="form-control input-sm input-control" placeholder="Example: organiser@example.com" id="organiser-email-input" name="organiser-email-input" value="{{ user_email }}" maxlength="255">
-                                </div>
-                              </td>
-                              <td class="formset-form-actions text-center">
-                                <!-- Action -->
-                                <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
-                                  <i class="fa fa-trash-o" aria-hidden="true"></i>
-                                </button>
-                              </td>
-                            </tr>
-                            <!-- Organiser -->
-                            <tr class="formset-form sorting-row" data-formset-form-prefix="organiser">
-                              <th class="formset-form-index text-center" scope=row>
-                                <!-- # -->
-                                2
-                              </th>
-                              <td>
-                                <!-- Email -->
-                                <div>
-                                    <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
-                                    <input type="text" class="form-control input-sm input-control" placeholder="Example: organiser@example.com" id="organiser-email-input" name="organiser-email-input" maxlength="255">
-                                </div>
-                              </td>
-                              <td class="formset-form-actions text-center">
-                                <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
-                                  <i class="fa fa-trash-o" aria-hidden="true"></i>
-                                </button>
-                              </td>
-                            </tr>
-                            <!-- Organiser -->
-                            <tr class="formset-form sorting-row formset-form-empty hidden" data-formset-form-prefix="organiser">
-                              <th class="formset-form-index text-center" scope=row>
-                                <!-- # -->
-                                X
-                              </th>
-                              <td>
-                                <!-- Email -->
-                                <div>
-                                    <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
-                                    <input type="text" class="form-control input-sm input-control" placeholder="Example: organiserX@example.com" id="organiser-email-input" name="organiser-email-input" maxlength="255">
-                                </div>
-                              </td>
-                              <td class="formset-form-actions text-center">
-                                <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
-                                  <i class="fa fa-trash-o" aria-hidden="true"></i>
-                                </button>
-                              </td>
-                            </tr>
+                            {% if invalid_fields %}
+                                {% for organiser in invalid_fields.organiser_emails_data.val %}
+                                <!-- Organiser -->
+                                <tr class="formset-form sorting-row" data-formset-form-prefix="organiser">
+                                  <th class="formset-form-index text-center" scope=row>
+                                    <!-- # -->
+                                    {{ forloop.counter }}
+                                  </th>
+                                  <td>
+                                    <!-- Email -->
+                                    <div>
+                                      <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
+                                        <input type="text" class="form-control input-sm input-control" placeholder="Example: organiser@example.com" id="organiser-email-input" name="organiser-email-input" value="{{ organiser }}" maxlength="255">
+                                    </div>
+                                  </td>
+                                  <td class="formset-form-actions text-center">
+                                    <!-- Action -->
+                                    <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
+                                      <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                    </button>
+                                  </td>
+                                </tr>
+                                {% endfor %}
+                                <!-- Organiser: Hidden -->
+                                <tr class="formset-form sorting-row formset-form-empty hidden" data-formset-form-prefix="organiser">
+                                  <th class="formset-form-index text-center" scope=row>
+                                    <!-- # -->
+                                    X
+                                  </th>
+                                  <td>
+                                    <!-- Email -->
+                                    <div>
+                                        <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
+                                        <input type="text" class="form-control input-sm input-control" placeholder="Example: organiserX@example.com" id="organiser-email-input" name="organiser-email-input" maxlength="255">
+                                    </div>
+                                  </td>
+                                  <td class="formset-form-actions text-center">
+                                    <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
+                                      <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                    </button>
+                                  </td>
+                                </tr>
+                            {% else %}
+                                <!-- Organiser -->
+                                <tr class="formset-form sorting-row" data-formset-form-prefix="organiser">
+                                  <th class="formset-form-index text-center" scope=row>
+                                    <!-- # -->
+                                    1
+                                  </th>
+                                  <td>
+                                    <!-- Email -->
+                                    <div>
+                                      <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
+                                        <input type="text" class="form-control input-sm input-control" placeholder="Example: organiser@example.com" id="organiser-email-input" name="organiser-email-input" value="{{ user_email }}" maxlength="255">
+                                    </div>
+                                  </td>
+                                  <td class="formset-form-actions text-center">
+                                    <!-- Action -->
+                                    <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
+                                      <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                    </button>
+                                  </td>
+                                </tr>
+                                <!-- Organiser -->
+                                <tr class="formset-form sorting-row" data-formset-form-prefix="organiser">
+                                  <th class="formset-form-index text-center" scope=row>
+                                    <!-- # -->
+                                    2
+                                  </th>
+                                  <td>
+                                    <!-- Email -->
+                                    <div>
+                                        <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
+                                        <input type="text" class="form-control input-sm input-control" placeholder="Example: organiser@example.com" id="organiser-email-input" name="organiser-email-input" maxlength="255">
+                                    </div>
+                                  </td>
+                                  <td class="formset-form-actions text-center">
+                                    <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
+                                      <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                    </button>
+                                  </td>
+                                </tr>
+                                <!-- Organiser: Hidden -->
+                                <tr class="formset-form sorting-row formset-form-empty hidden" data-formset-form-prefix="organiser">
+                                  <th class="formset-form-index text-center" scope=row>
+                                    <!-- # -->
+                                    X
+                                  </th>
+                                  <td>
+                                    <!-- Email -->
+                                    <div>
+                                        <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
+                                        <input type="text" class="form-control input-sm input-control" placeholder="Example: organiserX@example.com" id="organiser-email-input" name="organiser-email-input" maxlength="255">
+                                    </div>
+                                  </td>
+                                  <td class="formset-form-actions text-center">
+                                    <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
+                                      <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                    </button>
+                                  </td>
+                                </tr>
+                            {% endif %}
                           </tbody>
                         </table>
                         <div class="clearfix">
@@ -368,6 +549,7 @@
                         </span>
                         <span id="organisers-input-error-block" class="help-block errorText">
                             <!-- Errors flagged here -->
+                            {% if invalid_fields.organiser_emails %}{{ invalid_fields.organiser_emails.error }}{% endif %}
                         </span>
                       </div>
                   </div>
@@ -386,64 +568,108 @@
                             </tr>
                           </thead>
                           <tbody class="formset trustee-formset" data-formset-prefix="trustees" data-formset-type="inline">
-                            <!-- Trustee -->
-                            <tr class="formset-form sorting-row" data-formset-form-prefix="trustee">
-                              <th class="formset-form-index text-center" scope=row>
-                                <!-- # -->
-                                1
-                              </th>
-                              <td>
-                                <!-- Email -->
-                                <div> <!-- Has error conditional class removed -->
-                                  <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
-                                    <input type="text" class="form-control input-sm input-control" placeholder="Example: trustee@example.com" id="trustee-email-input" name="trustee-email-input" value="{{ user_email }}" maxlength="255">
-                                </div>
-                              </td>
-                              <td class="formset-form-actions text-center">
-                                <!-- Action -->
-                                <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
-                                  <i class="fa fa-trash-o" aria-hidden="true"></i>
-                                </button>
-                              </td>
-                            </tr>
-                            <!-- Trustee -->
-                            <tr class="formset-form sorting-row" data-formset-form-prefix="trustee">
-                              <th class="formset-form-index text-center" scope=row>
-                                <!-- # -->
-                                2
-                              </th>
-                              <td>
-                                <!-- Email -->
-                                <div> <!-- Has error conditional class removed -->
-                                    <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
-                                    <input type="text" class="form-control input-sm input-control" placeholder="Example: trustee@example.com" id="trustee-email-input" name="trustee-email-input" maxlength="255">
-                                </div>
-                              </td>
-                              <td class="formset-form-actions text-center">
-                                <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
-                                  <i class="fa fa-trash-o" aria-hidden="true"></i>
-                                </button>
-                              </td>
-                            </tr>
-                            <!-- Trustee -->
-                            <tr class="formset-form sorting-row formset-form-empty hidden" data-formset-form-prefix="trustee">
-                              <th class="formset-form-index text-center" scope=row>
-                                <!-- # -->
-                                X
-                              </th>
-                              <td>
-                                <!-- Email -->
-                                <div> <!-- Has error conditional class removed -->
-                                    <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
-                                    <input type="text" class="form-control input-sm input-control" placeholder="Example: trusteeX@example.com" id="trustee-email-input" name="trustee-email-input" maxlength="255">
-                                </div>
-                              </td>
-                              <td class="formset-form-actions text-center">
-                                <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
-                                  <i class="fa fa-trash-o" aria-hidden="true"></i>
-                                </button>
-                              </td>
-                            </tr>
+                            {% if invalid_fields %}
+                                {% for trustee in invalid_fields.trustee_emails_data.val %}
+                                <!-- Trustee -->
+                                <tr class="formset-form sorting-row" data-formset-form-prefix="trustee">
+                                  <th class="formset-form-index text-center" scope=row>
+                                    <!-- # -->
+                                    {{ forloop.counter }}
+                                  </th>
+                                  <td>
+                                    <!-- Email -->
+                                    <div> <!-- Has error conditional class removed -->
+                                      <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
+                                        <input type="text" class="form-control input-sm input-control" placeholder="Example: trustee@example.com" id="trustee-email-input" name="trustee-email-input" value="{{ trustee }}" maxlength="255">
+                                    </div>
+                                  </td>
+                                  <td class="formset-form-actions text-center">
+                                    <!-- Action -->
+                                    <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
+                                      <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                    </button>
+                                  </td>
+                                </tr>
+                                {% endfor %}
+                                <!-- Trustee: Hidden -->
+                                <tr class="formset-form sorting-row formset-form-empty hidden" data-formset-form-prefix="trustee">
+                                  <th class="formset-form-index text-center" scope=row>
+                                    <!-- # -->
+                                    X
+                                  </th>
+                                  <td>
+                                    <!-- Email -->
+                                    <div> <!-- Has error conditional class removed -->
+                                        <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
+                                        <input type="text" class="form-control input-sm input-control" placeholder="Example: trusteeX@example.com" id="trustee-email-input" name="trustee-email-input" maxlength="255">
+                                    </div>
+                                  </td>
+                                  <td class="formset-form-actions text-center">
+                                    <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
+                                      <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                    </button>
+                                  </td>
+                                </tr>
+                            {% else %}
+                                <!-- Trustee -->
+                                <tr class="formset-form sorting-row" data-formset-form-prefix="trustee">
+                                  <th class="formset-form-index text-center" scope=row>
+                                    <!-- # -->
+                                    1
+                                  </th>
+                                  <td>
+                                    <!-- Email -->
+                                    <div> <!-- Has error conditional class removed -->
+                                      <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
+                                        <input type="text" class="form-control input-sm input-control" placeholder="Example: trustee@example.com" id="trustee-email-input" name="trustee-email-input" value="{{ user_email }}" maxlength="255">
+                                    </div>
+                                  </td>
+                                  <td class="formset-form-actions text-center">
+                                    <!-- Action -->
+                                    <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
+                                      <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                    </button>
+                                  </td>
+                                </tr>
+                                <!-- Trustee -->
+                                <tr class="formset-form sorting-row" data-formset-form-prefix="trustee">
+                                  <th class="formset-form-index text-center" scope=row>
+                                    <!-- # -->
+                                    2
+                                  </th>
+                                  <td>
+                                    <!-- Email -->
+                                    <div> <!-- Has error conditional class removed -->
+                                        <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
+                                        <input type="text" class="form-control input-sm input-control" placeholder="Example: trustee@example.com" id="trustee-email-input" name="trustee-email-input" maxlength="255">
+                                    </div>
+                                  </td>
+                                  <td class="formset-form-actions text-center">
+                                    <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
+                                      <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                    </button>
+                                  </td>
+                                </tr>
+                                <!-- Trustee: Hidden -->
+                                <tr class="formset-form sorting-row formset-form-empty hidden" data-formset-form-prefix="trustee">
+                                  <th class="formset-form-index text-center" scope=row>
+                                    <!-- # -->
+                                    X
+                                  </th>
+                                  <td>
+                                    <!-- Email -->
+                                    <div> <!-- Has error conditional class removed -->
+                                        <!-- TODO: Add an invisible screen reader label to associate with this and other inputs -->
+                                        <input type="text" class="form-control input-sm input-control" placeholder="Example: trusteeX@example.com" id="trustee-email-input" name="trustee-email-input" maxlength="255">
+                                    </div>
+                                  </td>
+                                  <td class="formset-form-actions text-center">
+                                    <button type="button" class="btn btn-sm btn-default formset-form-remove" aria-label="Remove">
+                                      <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                    </button>
+                                  </td>
+                                </tr>
+                            {% endif %}
                           </tbody>
                         </table>
                         <div class="clearfix">
@@ -457,6 +683,7 @@
                         </span>
                         <span id="trustees-input-error-block" class="help-block errorText">
                             <!-- Errors flagged here -->
+                            {% if invalid_fields.trustee_emails %}{{ invalid_fields.trustee_emails.error }}{% endif %}
                         </span>
                       </div>
                   </div>
@@ -465,7 +692,7 @@
                 <div class="form-group">
                   <label for="voters-list-input" class="col-sm-3 col-md-2 control-label">Voters List:</label> <!-- This text can be a template variable -->
                   <div class="col-sm-9 col-md-10">
-                      <textarea class="form-control input-control" id="voters-list-input" placeholder="alice@example.com, bob@example.com..." name="voters-list-input" rows="4"></textarea>
+                      <textarea class="form-control input-control" id="voters-list-input" placeholder="alice@example.com, bob@example.com..." name="voters-list-input" rows="4">{% if invalid_fields %}{{ invalid_fields.voters_emails_data.val }}{% endif %}</textarea>
                       <span id="voters-list-input-help-block" class="help-block">
                         Manually enter email addresses separated with commas. Alternatively, you can also upload a CSV file:
                       </span>
@@ -477,6 +704,7 @@
                       <h4 id="result" class="hidden successText"></h4>
                         <span id="voters-input-error-block" class="help-block errorText">
                             <!-- Errors flagged here -->
+                            {% if invalid_fields.voters_emails %}{{ invalid_fields.voters_emails.error }}{% endif %}
                         </span>
                   </div>
                 </div>
@@ -490,6 +718,10 @@
                            data-sitekey="{{ G_R_SITE_KEY }}"></div> <!-- Need to finish server implementation and import key from settings -->
                       <span id="recaptcha-input-help-block" class="help-block">
                         Tick the box to prove that you're not a robot.
+                      </span>
+                      <span id="recaptcha-input-error-block" class="help-block errorText">
+                        <!-- Errors flagged here -->
+                          {% if invalid_fields.recaptcha %}{{ invalid_fields.recaptcha.error }}{% endif %}
                       </span>
                   </div>
                 </div>

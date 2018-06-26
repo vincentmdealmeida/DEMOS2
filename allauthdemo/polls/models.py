@@ -1,13 +1,8 @@
 from __future__ import unicode_literals
 
+from datetime import datetime
+
 from django.db import models
-
-from django import forms
-
-# Create your models here.
-
-import datetime
-
 from django.utils import timezone
 
 from allauthdemo.auth.models import DemoUser
@@ -30,6 +25,27 @@ class Event(models.Model):
     creator = models.CharField(max_length=256, blank=True)
     c_email = models.CharField(max_length=512, blank=True)
     trustees = models.CharField(max_length=4096)
+
+    def duration(self):
+        duration_str = self.start_time.strftime("%d-%m-%y %H:%M")
+        duration_str = duration_str + " - " + self.end_time.strftime("%d-%m-%y %H:%M %Z")
+        return duration_str
+
+    def status(self):
+        status_str = ""
+
+        # Get the current date and time to compare against to establish if this is a past, current or
+        # future event
+        present = timezone.now()
+
+        if present >= self.start_time and present <= self.end_time:
+            status_str = "Active"
+        elif present > self.end_time:
+            status_str = "Expired"
+        elif present < self.start_time:
+            status_str = "Future"
+
+        return status_str
 
     def __str__(self):
         return self.title

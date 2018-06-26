@@ -1,6 +1,11 @@
+import urllib
+import urllib2
+import json
+
 from io import StringIO
 from django.contrib import messages
 from django.http import HttpResponseRedirect, HttpResponse, Http404
+from django.http.response import HttpResponseNotAllowed
 from django.core.urlresolvers import reverse
 from django.shortcuts import get_object_or_404, render, render_to_response
 from django.utils import timezone
@@ -15,7 +20,7 @@ from allauthdemo.auth.models import DemoUser
 from .tasks import create_voters, create_ballots, generate_event_param, generate_combpk, generate_enc, tally_results
 from .cpp_calls import param, addec, combpk, tally
 
-from .utils.CreateNewEventModelAdaptor import CreateNewEventModelAdaptor
+from .utils.EventModelAdaptor import EventModelAdaptor
 
 class EventListView(generic.ListView):
 
@@ -255,54 +260,56 @@ def manage_questions(request, event_id):
     else:
         return HttpResponseNotAllowed()
 
+def render_invalid(request, events, demo_users, invalid_fields):
+    return render(request,
+                  "polls/create_event.html",
+                  {
+                      "G_R_SITE_KEY": settings.RECAPTCHA_PUBLIC_KEY,
+                      "user_email": request.user.email,
+                      "events": events,
+                      "demo_users": demo_users,
+                      "invalid_fields": invalid_fields
+                  })
+
 def create_event(request):
-    #return HttpResponse(param(str(len("lol_age"))))
-    event = Event()
+    # Obtain context data for the rendering of the html template and validation
+    events = Event.objects.all()
+    demo_users = DemoUser.objects.all()
+
     if request.method == "POST":
-        '''if request.FILES: # if there is a file we should ignore voters...?
-            csvfile = StringIO(request.FILES['votersTextFile'].read().decode('utf-8'))
-            print("got file from request:")
+        '''Perform Google reCAPTCHA validation'''
+        recaptcha_response = request.POST.get('g-recaptcha-response')
+        url = 'https://www.google.com/recaptcha/api/siteverify'
+        values = {
+            'secret': settings.RECAPTCHA_PRIVATE_KEY,
+            'response': recaptcha_response
+        }
+        data = urllib.urlencode(values)
+        req = urllib2.Request(url, data)
+        response = urllib2.urlopen(req)
+        result = json.load(response)
 
-        form = EventForm(request.POST)
-        organiser_formset = OrganiserFormSet(request.POST, prefix="formset_organiser") # incase form fails, we still want to retain formset data
-        trustee_formset = TrusteeFormSet(request.POST, prefix="formset_trustee")
-        if form.is_valid():
-            event = form.save()
-            generate_event_param.delay(event)
-            if request.FILES:
-                print("creating voters")
-                create_voters.delay(csvfile, event) # this will be done on event launch ultimately
-            
+        '''Perform form data validation'''
+        adaptor = EventModelAdaptor(request.POST, request.user)
+        form_data_valid = adaptor.isFormDataValid(events, demo_users)
 
+        '''Process form data based on above results'''
+        if result['success']:
+            if form_data_valid:
+                adaptor.extractData()
+                adaptor.updateModel()
 
-            if organiser_formset.is_valid():
-                #event.users_organisers.clear()
-                for oform in organiser_formset:
-                    if (oform.cleaned_data.get('email')):
-                        event.users_organisers.add(DemoUser.objects.get(email=oform.cleaned_data['email']))
-                event.users_organisers.add(request.user) # always add editor/creator
-                if trustee_formset.is_valid():
-                    #event.users_trustees.clear()
-                    for tform in trustee_formset:
-                        if (tform.cleaned_data.get('email')):
-                            event.users_trustees.add(EmailUser.objects.get_or_create(email=tform.cleaned_data['email'])[0])
-                    return HttpResponseRedirect('/event/' + str(event.id) + '/create/poll') # change to reverse format
+                return HttpResponseRedirect(reverse('polls:index'))
+            else:
+                invalid_fields = adaptor.getInvalidFormFields()
+                return render_invalid(request, events, demo_users, invalid_fields)
 
-            
-        return render(request, "polls/create_event.html", {"event": event, "form": form, "organiser_formset": organiser_formset, "trustee_formset": trustee_formset})'''
+        else:
+            invalid_fields = adaptor.getInvalidFormFields()
+            invalid_fields['recaptcha'] = {'error': 'The reCAPTCHA server validation failed, please try again.'}
+            return render_invalid(request, events, demo_users, invalid_fields)
 
-        adaptor = CreateNewEventModelAdaptor(request.POST, request.user)
-        adaptor.updateModel()
-
-        # TODO: Based on whether validation was successful within update model and whether
-        # TODO: data was actually persisted, either perform a redirect (success) or flag an error
-
-        return HttpResponseRedirect(reverse('polls:index'))
     elif request.method == "GET":
-        # Obtain context data for the rendering of the html template
-        events = Event.objects.all()
-        demo_users = DemoUser.objects.all()
-
         # Render the template
         return render(request,
                       "polls/create_event.html",
