@@ -98,6 +98,7 @@
 /* Formsets */
 
 .form-group table {
+  border-top: 2px solid #ddd;
   border-bottom: 2px solid #ddd;
 }
 
@@ -154,6 +155,10 @@ input[type="file"] {
 }
 
 /* Events List page */
+
+.statusBtn {
+  width: 74px;
+}
 
 .marginTopEventList {
   margin-top: 5.75em;

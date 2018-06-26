@@ -23,10 +23,10 @@
               <thead>
                 <tr>
                     <th class="text-center">Event</th>
-                    <th class="text-center">Start Time</th>
-                    <th class="text-center">End Time</th>
+                    <th class="text-center">Duration</th>
                     <th class="text-center">No. Polls</th>
                     <th class="text-center">Actions</th>
+                    <th class="text-center">Status</th>
                     <!-- Could also add a delete column to easily remove an event -->
                 </tr>
               </thead>
@@ -34,8 +34,7 @@
                     {% for event in object_list %}
                    <tr>
                        <td class="text-center"><a href="{% url 'polls:view-event' event.id %}">{{ event.title }}</a></td>
-                       <td class="text-center">{{ event.start_time }}</td>
-                       <td class="text-center">{{ event.end_time }}</td>
+                       <td class="text-center">{{ event.duration }}</td>
                        <td class="text-center">{{ event.polls.count }}</td>
                        <td class="text-center">
                            <a href="{% url 'polls:edit-event' event.id %}">
@@ -44,6 +43,14 @@
                            <a href="{% url 'polls:del-event' event.id %}">
                               <span class="btn btn-default glyphicon glyphicon-trash"></span>
                            </a>
+                       </td>
+                       <td class="text-center">
+                           <div class="btn statusBtn
+                                       {% if event.status == 'Expired' %}btn-danger{% endif %}
+                                       {% if event.status == 'Active' %}btn-success{% endif %}
+                                       {% if event.status == 'Future' %}btn-info{% endif %}">
+                               {{ event.status }}
+                           </div>
                        </td>
                    </tr>
                     {% endfor %}
