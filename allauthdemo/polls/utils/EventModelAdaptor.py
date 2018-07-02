@@ -1,13 +1,9 @@
 import re
-
 from datetime import datetime
 
 from django.utils.dateparse import parse_datetime
 
-from allauthdemo.polls.models import Event
-from allauthdemo.polls.models import Poll
-from allauthdemo.polls.models import PollOption
-from allauthdemo.polls.models import EmailUser
+from allauthdemo.polls.models import Event, Poll, PollOption, EmailUser
 from allauthdemo.auth.models import DemoUser
 
 '''
@@ -382,6 +378,7 @@ class EventModelAdaptor:
                 errors_summary = errors_summary + str(i + 1) + " "
 
         self.invalid_form_fields['polls_data'] = {'val': polls_json}
+        self.invalid_form_fields['poll_count'] = {'val': poll_count}
 
         if not valid and len(errors_summary) > 34:
             errors_summary = errors_summary + "and can be corrected by editing them."
@@ -536,7 +533,7 @@ class EventModelAdaptor:
         organisers_list = self.form_data.pop('organiser-email-input')
 
         for organiser in organisers_list:
-            if organiser != '' and DemoUser.objects.filter(email=organiser).count() == 1:
+            if organiser != '' and DemoUser.objects.filter(email=organiser).exists():
                 self.organisers.append(DemoUser.objects.filter(email=organiser).get())
 
         # Extract the list of trustees
@@ -544,7 +541,7 @@ class EventModelAdaptor:
 
         for trustee in trustees_list:
             if trustee != '':
-                if EmailUser.objects.filter(email=trustee).count() == 1:
+                if EmailUser.objects.filter(email=trustee).exists():
                     self.trustees.append(EmailUser.objects.filter(email=trustee).get())
                 else:
                     self.trustees.append(EmailUser(email=trustee))
@@ -555,7 +552,7 @@ class EventModelAdaptor:
 
         for voter_email in voters_email_list:
             if voter_email != '':
-                if EmailUser.objects.filter(email=voter_email).count() == 1:
+                if EmailUser.objects.filter(email=voter_email).exists():
                     self.voters.append(EmailUser.objects.filter(email=voter_email).get())
                 else:
                     self.voters.append(EmailUser(email=voter_email))
@@ -634,14 +631,15 @@ class EventModelAdaptor:
 
         # Add the list of trustees to the event, making sure they're instantiated
         for trustee in self.trustees:
-            if EmailUser.objects.filter(email=trustee.email).count() == 0:
+            if not EmailUser.objects.filter(email=trustee.email).exists():
                 trustee.save()
 
         self.event.users_trustees = self.trustees
 
         # Add the list of voters to the event, making sure they're instantiated
+        # Additionally, generating the AccessKey for voters
         for voter in self.voters:
-            if EmailUser.objects.filter(email=voter.email).count() == 0:
+            if not EmailUser.objects.filter(email=voter.email).exists():
                 voter.save()
 
         self.event.voters = self.voters
@@ -655,10 +653,10 @@ class EventModelAdaptor:
 
         self.event.save()
 
-        # Finally perform a data clean up
-        self.__clear_data()
+        # Finally return a reference to the event
+        return self.event
 
-    def __clear_data(self):
+    def clear_data(self):
         self.form_data = None
         self.form_data_validation = None
         self.invalid_form_fields = {}

@@ -4,10 +4,17 @@
 
 {% block event_nav_details %}active{% endblock %}
 {% block event_content %}
-<h2>Event Details</h2>
-  <span>Ready/Prepared: {{ event.prepared }}</span>
-  <br />
-  <span>Start Time: {{ event.start_time }}</span>
-  <br />
-  <span>End Time: {{ event.end_time }}</span>
+    <br/>
+    <span><strong>Start Time:</strong> {{ event.start_time_formatted_utc }}</span>
+    <br />
+    <span><strong>End Time:</strong> {{ event.end_time_formatted_utc }}</span>
+    <br/>
+    <br/>
+    <span><strong>Number of Polls:</strong> {{ event.polls.count }}</span>
+    <br/>
+    <span><strong>Number of Organisers:</strong> {{ event.users_organisers.count }}</span>
+    <br/>
+    <span><strong>Number of Trustees:</strong> {{ event.users_trustees.count }}</span>
+    <br/>
+    <span><strong>Number of Voters:</strong> {{ event.voters.count }}</span>
 {% endblock %}

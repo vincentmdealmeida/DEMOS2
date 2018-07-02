@@ -1,10 +1,10 @@
 # DEMOS2
 
-Prototype Django based e-voting application, to demonstrate DEMOS2's client-side encryption e-voting.
+Prototype Django-based e-voting application, to demonstrate DEMOS2's client-side encryption e-voting.
 
 The previous repository for DEMOS2 by Carey Williams can be found at: https://github.com/CareyJWilliams/DEMOS2
 
-### Dependencies
+### Main Application Dependencies
 
     Python: Version 2.7 (Anything higher than this will not currently work)
     Python packages: Specified in 'requirements.txt' - PyCharm will detect these dependencies and offer installation
@@ -17,9 +17,23 @@ Finally, with all the above dependencies in place, you can simply issue the foll
     python manage.py migrate
 
 'aullauthdemo/settings.py' specifies the Google reCAPTCHA site key and private key which will need changing when deployed
-onto a new domain.
+onto a new domain. There is also a DOMAIN setting within the file that needs updating during deployment as things
+like email functionality depend on this setting for correct URL generation during event preparation etc. 
 
-### Running the server and creating a new user account
+Emails from the application are currently sent from the following email account which can be updated within the settings:
+
+    demos2.no.reply@gmail.com
+
+### NodeJS Dependencies
+
+The Node.js crypto server depends on the milagro-crypto-js and express modules. A package.json file can be found in the 
+Node/ directory with these dependency requirements and therefore from this folder you can run:
+
+    npm install
+
+Once the dependencies have been installed, you can then run the node server as per the below instructions.
+
+### Step 1: Running the Python app and creating a new user account
 
 You can run the server with the following command:
 
@@ -33,8 +47,16 @@ You can then click on 'Join' to create a new user account. Currently, a server e
 email account saying something like 'Too Many Attempts'. Rest assured that the account will have been created. Navigate
 back to the home page and you should be able to log in. This will hopefully be fixed in a future version.
 
-### Other
+### Step 2: Running Celery
 
-This was included in the previous readme and may be required:
+Celery is used to run tasks asynchronously and the DEMOS2 application can't run without this application. A bash script
+called 'start_celery_worker.sh' is provided to make starting a worker as easy as possible:
 
-The Node.js encryption server depends on the milagro-crypto-js library. Download the source and follow the instructions for installation: https://github.com/milagro-crypto/milagro-crypto-js. To install, place the package's files (`package.json` level) into the directory Node/milagro-crypto-js (a new folder) then run `npm install` in the Node folder. This should install dependencies including the local package you just added.
+    ./start_celery_worker.sh
+
+### Step 3: Running the NodeJS Server
+
+The NodeJS server exposes a lot of cryptographic operations that the application depends on throughout. To run the
+server, issue the following command line request from the Node/ folder:
+
+    node index.js 

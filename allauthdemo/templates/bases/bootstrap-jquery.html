@@ -150,7 +150,7 @@
   //new function
   demosEncrypt.generateKeys = function() {
     parameter = $("#event-param").val();
-    var tempParams = JSON.parse(parameter);
+    var tempParams = JSON.parse(JSON.parse(parameter).crypto);
     //the full objects need to be initalised as per the library, then copy the values we need into it
     //I follow Bingsheng's code as to what objects are used in the parameter object
     var ctx = new CTX("BN254CX"); //new context we can use

@@ -4,18 +4,21 @@ import subprocess
 import json
 import urllib2
 
-#change this file name etc., temporary change to get it working for the meantime
 '''
 
 All functions in this file have been re-implemenented by Thomas Smith
 
+File then updated by Vincent de Almeida. Changes include:
+    -Update filename to 'crypto_rpc' to reflect the RPC nature of the methods
+
 '''
 def param():
-    jsondict = json.load(urllib2.urlopen('http://localhost:8080/param'))
+    url = 'http://localhost:8080/param' # RPC URL
+    jsondict = json.load(urllib2.urlopen(url))
     return json.dumps(jsondict)
 
 def combpk(amount, pks):
-    url = 'http://localhost:8080/cmpkstring'
+    url = 'http://localhost:8080/cmpkstring' # RPC URL
     querystring = '?number='+str(amount)
     for pk in pks:
         querystring += '&PK='+pk
@@ -26,7 +29,7 @@ def combpk(amount, pks):
     return json.dumps(jsondict)
 
 def addec(amount, ciphers):
-    url = 'http://localhost:8080/addec'
+    url = 'http://localhost:8080/addec' # RPC URL
     querystring = '?number='+str(amount)
     c1s = ciphers['c1s']
     c2s = ciphers['c2s']
@@ -40,7 +43,7 @@ def addec(amount, ciphers):
     return json.dumps(jsondict)
 
 def tally(amount, param, decs, cipher):
-    url = 'http://localhost:8080/tally'
+    url = 'http://localhost:8080/tally' # RPC URL
     querystring = '?number='+str(amount)
     querystring += '&param='+urllib2.quote(str(param))
 

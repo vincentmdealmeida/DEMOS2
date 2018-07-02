@@ -4,10 +4,8 @@
 
 {% block event_nav_polls %}active{% endblock %}
 {% block event_content %}
-<h2>Event Polls</h2>
   {% if object.polls.all %}
     {% for poll in object.polls.all %}
-        <hr/>
         <h3>Poll: {{ poll.question_text }} (<a href="{% url 'polls:view-poll' event_id=event.id poll_num=forloop.counter %}">Edit</a>)</h3>
         <br/>
         <h4>Poll Options:</h4>
@@ -17,12 +15,12 @@
             {% endfor %}
         </ul>
         <p>Minimum Number of Option Selections: {{ poll.min_num_selections }}. Maximum Number of Option Selections: {{ poll.max_num_selections }}.</p>
+        <hr/>
     {% endfor %}
   {% else %}
     <p>No polls are available for this Event.</p>
   {% endif %}
   {% if is_organiser %}
-      <hr/>
     <a href="{% url 'polls:create-poll' event.id %}" class="btn btn-default" role="button">Add Poll</a>
   {% endif %}
 {% endblock %}
