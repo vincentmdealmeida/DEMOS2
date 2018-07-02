@@ -4,11 +4,16 @@
 
 {% block event_nav_launch %}active{% endblock %}
 {% block event_content %}
-<h2>Event Details</h2>
-  <span>Trustee keys: {{ event.trustee_keys.count }} / {{ event.users_trustees.count }}</span>
+    <br/>
+    <span><strong>Trustee Keys Received:</strong> {{ event.trustee_keys.count }} / {{ event.users_trustees.count }}</span>
   <br />
-  <span>EID (param): {{ event.EID }} </span>
+    <br/>
+    <span><strong>Human-readable Event ID:</strong> {{ event.EID_hr }} </span>
   <br />
-  <span>Public key: {{ event.public_key }} </span>
+    <br/>
+    <span><strong>Group Param ID:</strong> {{ event.EID_crypto }} </span>
+  <br />
+    <br/>
+    <span><strong>Public key:</strong> {{ event.public_key }} </span>
 
 {% endblock %}

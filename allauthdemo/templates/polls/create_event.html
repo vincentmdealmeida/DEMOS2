@@ -26,11 +26,13 @@
         }
     {% endfor %}
     ];
+
+    {% if invalid_fields.poll_count %}pollCount = {{ invalid_fields.poll_count.val }};{% endif %}
 </script>
 
 <!-- The following UI was ported from the Election Authority UI in DEMOS1 by Vincent de Almeida -->
 <!-- The DEMOS1 repository can be found at: https://github.com/mlevogiannis/demos-voting -->
-<!-- TODO: look into i18n translations as this was a feature implemented in DEMOS1 -->
+<!-- TODO: look into i18n translations as this was a feature implemented in DEMOS1 to enable automatic translations -->
 <div class="container">
     <div class="page-header">
         <h2>Create New Event with Polls</h2>
@@ -419,7 +421,7 @@
                   </div>
                 </div>
                 <!-- { Hidden field: Number of Polls } -->
-                <input type="number" id="poll-count-input" name="poll-count-input" class="hidden">
+                <input type="number" id="poll-count-input" name="poll-count-input" class="hidden" {% if invalid_fields.poll_count %}value="{{ invalid_fields.poll_count.val }}"{% endif %}>
                 <!-- Organisers -->
                 <div class="form-group">
                   <label for="organisers-input" class="col-sm-3 col-md-2 control-label">Organisers:</label> <!-- This text can be a template variable -->

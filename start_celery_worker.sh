@@ -1,0 +1,1 @@
+celery -A allauthdemo worker -l info

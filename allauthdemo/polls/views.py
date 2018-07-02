@@ -17,8 +17,7 @@ from .forms import EventForm, PollForm, OptionFormset, QuestionFormset, Organise
 from .models import Event, Poll, PollOption, EmailUser, Ballot, TrusteeKey, Decryption
 from allauthdemo.auth.models import DemoUser
 
-from .tasks import create_voters, create_ballots, generate_event_param, generate_combpk, generate_enc, tally_results
-from .cpp_calls import param, addec, combpk, tally
+from .tasks import email_trustees_prep, update_EID, generate_combpk, generate_enc, tally_results
 
 from .utils.EventModelAdaptor import EventModelAdaptor
 
@@ -38,6 +37,7 @@ class EventDetailView(generic.DetailView):
     def get_context_data(self, **kwargs):
         context = super(EventDetailView, self).get_context_data(**kwargs)
         context['is_organiser'] = ((not self.request.user.is_anonymous()) and (self.object.users_organisers.filter(email=self.request.user.email).exists()))
+
         #context['now'] = timezone.now()
         return context
 
@@ -153,28 +153,42 @@ def view_poll(request, event_id, poll_num):
         })
 
 def event_trustee_setup(request, event_id):
+    # Obtain the event and the event preparation access key that's been supplied
     event = get_object_or_404(Event, pk=event_id)
     access_key = request.GET.get('key', None)
-    if (access_key):
+
+    # If the a_key is present, check it's valid and related to a trustee EmailUser instance for this event
+    if access_key:
         email_key = event.keys.filter(key=access_key)
-        if (email_key.exists() and event.users_trustees.filter(email=email_key[0].user.email).exists()):
-            if (TrusteeKey.objects.filter(event=event, user=email_key[0].user).exists()):
+        if email_key.exists() and event.users_trustees.filter(email=email_key[0].user.email).exists():
+            if TrusteeKey.objects.filter(event=event, user=email_key[0].user).exists():
                 messages.add_message(request, messages.WARNING, 'You have already submitted your key for this event')
                 return HttpResponseRedirect(reverse("user_home"))
-            if (request.method == "POST"):
+            if request.method == "POST":
                 form = EventSetupForm(request.POST)
-                if (form.is_valid()):
+
+                # If form data is valid, create a TrusteeKey object with the supplied public key
+                if form.is_valid():
                     public_key = request.POST["public_key"]
                     key = TrusteeKey.objects.get_or_create(event=event, user=email_key[0].user)[0]
                     key.key = public_key
                     key.save()
-                    if (event.trustee_keys.count() == event.users_trustees.count()): # ready for combpk
+
+                    # When all trustees have supplied their public key, we can combine them to create a master key
+                    # The event will now be ready to receive votes on the various polls that have been defined -
+                    # voters therefore need to be informed
+                    if event.trustee_keys.count() == event.users_trustees.count():
                         generate_combpk.delay(event)
-                    messages.add_message(request, messages.SUCCESS, 'You have successfully submitted your public key for this event')
+                        # TODO: Create Celery task that generates voting URLs for voters as well as creates the ballots
+
+                    success_msg = 'You have successfully submitted your public key for this event'
+                    messages.add_message(request, messages.SUCCESS, success_msg)
+
+                    # This re-direct may not be appropriate for trustees that don't have logins
                     return HttpResponseRedirect(reverse("user_home"))
             else:
                 form = EventSetupForm()
-                return render(request, "polls/event_setup.html", {"event": event, "form": form })
+                return render(request, "polls/event_setup.html", {"event": event, "form": form})
 
     #if no key or is invalid?
     messages.add_message(request, messages.WARNING, 'You do not have permission to access: ' + request.path)
@@ -247,11 +261,11 @@ def manage_questions(request, event_id):
             poll.save()
             formset = OptionFormset(request.POST, prefix="formset_organiser", instance=poll)
             if formset.is_valid():
-                for form in formset:
-                    formset.save()
-                    create_ballots.delay(poll)
-                    messages.add_message(request, messages.SUCCESS, 'Poll created successfully')
-                    return HttpResponseRedirect(reverse('polls:view-poll', kwargs={'event_id': poll.event_id, 'poll_num': event.polls.count() }))
+                formset.save()
+                #create_ballots.delay(poll)
+                messages.add_message(request, messages.SUCCESS, 'Poll created successfully')
+                return HttpResponseRedirect(reverse('polls:event-polls', args=[poll.event_id]))
+
         return render(request, "polls/create_poll.html", {"event": event, "question_form": form, "option_formset": formset})
 
     elif request.method == "GET":
@@ -296,17 +310,28 @@ def create_event(request):
         '''Process form data based on above results'''
         if result['success']:
             if form_data_valid:
+                # Create the new event using the form data
                 adaptor.extractData()
-                adaptor.updateModel()
+                new_event = adaptor.updateModel()
+
+                # Update the EID to include the GP in its EID
+                update_EID.delay(new_event)
+
+                # Send an email to all trustees for event preparation
+                trustees = new_event.users_trustees.all()
+                email_trustees_prep.delay(trustees, new_event)
+
+                adaptor.clear_data()
 
                 return HttpResponseRedirect(reverse('polls:index'))
             else:
                 invalid_fields = adaptor.getInvalidFormFields()
+                adaptor.clear_data()
                 return render_invalid(request, events, demo_users, invalid_fields)
-
         else:
             invalid_fields = adaptor.getInvalidFormFields()
             invalid_fields['recaptcha'] = {'error': 'The reCAPTCHA server validation failed, please try again.'}
+            adaptor.clear_data()
             return render_invalid(request, events, demo_users, invalid_fields)
 
     elif request.method == "GET":

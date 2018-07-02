@@ -1,14 +1,29 @@
 from __future__ import absolute_import
-import csv
-from os import urandom
+
 import base64
-from io import StringIO
+import json
+from os import urandom
 from celery import task
+
 from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator
 from django.core.mail import send_mail
-from allauthdemo.polls.models import Ballot, Event, EmailUser, AccessKey
-from .cpp_calls import param, combpk, addec, tally
+from django.conf import settings
+
+from allauthdemo.polls.models import AccessKey
+
+from .crypto_rpc import param, combpk, addec, tally
+
+'''
+    Goal: This py file defines celery tasks that can be initiated
+    
+    The following tasks were re-implemented by Thomas Smith: generate_event_param, tally_results, generate_combpk, generate_enc
+    
+    This file was also updated by Vincent de Almeida 
+'''
+
+# Will store the result of the initial cal to param() from .cpp_calls
+group_param = None
 
 def is_valid_email(email):
     try:
@@ -23,36 +38,59 @@ def create_ballots(poll):
     for voter in poll.event.voters.all():
         ballot = poll.ballots.create(voter=voter, poll=poll)
 
-@task()
-def create_voters(csvfile, event):
-    print("Creating voters for event " + event.title)
-    reader = csv.reader(csvfile, delimiter=',')
-    string = ""
-    for row in reader:
-        email = string.join(row)
-        print(email)
-        #testvoter = EmailUser.objects.get_or_create(email='notarealemail@live.com')[0]
-        #event.voters.add(testvoter)
-        if (is_valid_email(email)):
-            voter = EmailUser.objects.get_or_create(email=email)[0]
-            event.voters.add(voter)
-            key = base64.urlsafe_b64encode(urandom(16)).decode('utf-8')
-            AccessKey.objects.create(user=voter, event=event, key=key)
-            send_mail(
-                'Your Voting Key',
-                'Key: ' + key,
-                'from@example.com',
-                [string.join(row)],
-                fail_silently=False,
-            )
 '''
-
-Starting here: functions re-implemented by Thomas Smith
+    Will generate a key for accessing either the event preparation page or the voting page
+'''
+def gen_access_key():
+    return base64.urlsafe_b64encode(urandom(16)).decode('utf-8')
 
 '''
+    Emails an event preparation URL containing an access key for all of the trustees for an event 
+'''
 @task()
-def generate_event_param(event):
-    event.EID = param()
+def email_trustees_prep(trustees, event):
+    email_subject = "Key Generation and Preparation for Event '" + event.title + "'"
+
+    # Plain text email - this could be replaced for a HTML-based email in the future
+    email_body = "Please visit the following URL to prepare the event and generate your trustee secret key:\n\n"
+    url_base = "http://" + settings.DOMAIN + "/event/" + str(event.pk) + "/prepare/?key="
+    email_body = email_body + url_base
+
+    for trustee in trustees:
+        # Generate a key and create an AccessKey object
+        key = gen_access_key()
+        AccessKey.objects.create(user=trustee, event=event, key=key)
+
+        trustee.send_email(email_subject, email_body + key)
+
+'''
+    Emails the access keys for all of the voters for an event 
+'''
+@task()
+def email_voters_a_key(voters, event):
+    email_subject = "Voting Access for Event '" + event.title + "'"
+    email_body = 'Key: '
+
+    for voter in voters:
+        # Generate a key and create an AccessKey object
+        key = gen_access_key()
+        AccessKey.objects.create(user=voter, event=event, key=key)
+
+        voter.send_email(email_subject, email_body + key)
+
+'''
+    Updates the EID of an event to contain 2 event IDs: a human readable one (hr) and a crypto one (GP from param())
+'''
+@task()
+def update_EID(event):
+    global group_param
+    if group_param is None:
+        group_param = param()
+
+    EID = {}
+    EID['hr'] = event.EID
+    EID['crypto'] = group_param
+    event.EID = json.dumps(EID)
     event.save()
 
 @task()
@@ -98,20 +136,4 @@ def generate_enc(poll):
     poll.enc = addec(amount, ciphers)
     poll.save()
 
-'''
 
-End of re-implemented code
-
-'''
-
-@task()
-def add(x, y):
-    return x + y
-
-@task()
-def mul(x, y):
-    return x * y
-
-@task()
-def xsum(numbers):
-    return sum(numbers)

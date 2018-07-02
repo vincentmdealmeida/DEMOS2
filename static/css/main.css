@@ -154,7 +154,7 @@ input[type="file"] {
     display: none;
 }
 
-/* Events List page */
+/* Events List page / Events Detail */
 
 .statusBtn {
   width: 74px;
@@ -166,4 +166,16 @@ input[type="file"] {
 
 .marginTopCreateButton {
   margin-top: 1.75em;
+}
+
+.marginTopEditButton {
+  margin-top: 0.85em;
+}
+
+.marginTopOverview {
+  margin-top: 5em;
+}
+
+.overviewPadding {
+  padding-left: 16px;
 }

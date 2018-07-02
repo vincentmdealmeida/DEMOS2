@@ -7,26 +7,29 @@
 {% block content %}
 
 <div class="container">
-  <h1>Event: {{event.title}}</h1>
-  <h2>Trustee Setup</h2>
+  <h2>Trustee Event Setup for Event '{{ event.title }}'</h2>
+  <hr/>
   <div class="panel panel-default">
-    <div class="panel-heading">Public Key</div>
+    <div class="panel-heading"><strong>Step 1: Generate Your Secret Key</strong></div>
     <div class="panel panel-body">
-      {% load crispy_forms_tags %}
-      <form method="post" action="" class="">
-         {% crispy form %}
-         <input id="public-submit" class="btn btn-default" type="submit" value="Submit" disabled="true"/>
-     </form>
+      <input id="secret-key" class="textinput textInput form-control" type="text"/>
+      <input id="event-param" type="text" value="{{event.EID}}" hidden/>
+      <div class="alert alert-warning" role="alert" style="margin-top: 0.75em;">
+          <strong>Warning:</strong> This key can <strong>NOT</strong> be recalculated if forgotten or lost! Ensure you back this up.
+      </div>
+      <button id="keygen-btn" onclick="demosEncrypt.generateKeys()" class="btn btn-success">Generate</button>
+      <a id="download-btn" role="button" href="#" class="btn btn-primary" disabled>Download</a>
     </div>
   </div>
   <div class="panel panel-default">
-    <div class="panel-heading">Secret Key</div>
+    <div class="panel-heading"><strong>Step 2: Submit Your Public Key</strong></div>
     <div class="panel panel-body">
-      <input id="secret-key" class="textinput textInput form-control" type="text"></input>
-      <input id="event-param" type="text" value="{{event.EID}}" hidden></input>
-      <p>Make a backup of this secret key before submitting your public key. This can NOT be recalculated if forgotten!</p>
-      <button id="keygen-btn" onclick="demosEncrypt.generateKeys()" class="btn btn-default">Generate</button>
-      <a id="download-btn" role="button" href="#" class="btn btn-default" disabled>Download</a>
+        {% load crispy_forms_tags %}
+        <form method="post" action="" class="">
+            {% crispy form %}
+            <p>Ensure your secret key is backed up before submitting.</p>
+            <input id="public-submit" class="btn btn-danger" type="submit" value="Submit" disabled/>
+        </form>
     </div>
   </div>
 </div>

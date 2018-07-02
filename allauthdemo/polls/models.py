@@ -1,7 +1,8 @@
 from __future__ import unicode_literals
 
-from datetime import datetime
+import json
 
+from django.core.mail import send_mail
 from django.db import models
 from django.utils import timezone
 
@@ -9,8 +10,16 @@ from allauthdemo.auth.models import DemoUser
 
 class EmailUser(models.Model):
     email = models.CharField(max_length=80, unique=True)
+
+    def send_email(self, subject, message, from_email=None):
+        """
+        Sends an email to this User.
+        """
+        send_mail(subject, message, from_email, [self.email])
+
     def __unicode__(self):
         return self.email
+
 
 class Event(models.Model):
     users_organisers = models.ManyToManyField(DemoUser, blank=True, related_name="organisers")
@@ -26,10 +35,31 @@ class Event(models.Model):
     c_email = models.CharField(max_length=512, blank=True)
     trustees = models.CharField(max_length=4096)
 
+    def EID_hr(self):
+        EID_json = json.loads(self.EID)
+        return EID_json['hr']
+
+    def EID_crypto(self):
+        EID_json = json.loads(self.EID)
+        EID_crypto_str = EID_json['crypto']
+        return json.loads(EID_crypto_str)
+
     def duration(self):
-        duration_str = self.start_time.strftime("%d-%m-%y %H:%M")
-        duration_str = duration_str + " - " + self.end_time.strftime("%d-%m-%y %H:%M %Z")
+        duration_str = self.start_time_formatted()
+        duration_str = duration_str + " - " + self.end_time_formatted_utc()
         return duration_str
+
+    def start_time_formatted(self):
+        return self.start_time.strftime("%d-%m-%y %H:%M")
+
+    def start_time_formatted_utc(self):
+        return self.start_time.strftime("%d-%m-%y %H:%M %Z")
+
+    def end_time_formatted(self):
+        return self.end_time.strftime("%d-%m-%y %H:%M")
+
+    def end_time_formatted_utc(self):
+        return self.end_time.strftime("%d-%m-%y %H:%M %Z")
 
     def status(self):
         status_str = ""
@@ -113,14 +143,4 @@ class Organiser(models.Model):
     email = models.CharField(max_length=100, blank=False, null=False)
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
 
-'''
-class Organiser(models.Model):
-    user = models.ForeignKey(DemoUser, on_delete=models.CASCADE)
-    event = models.ForeignKey(Event, on_delete=models.CASCADE)
 
-class Trustee(models.Model):
-    user = models.ForeignKey(DemoUser, on_delete=models.CASCADE)
-    event = models.ForeignKey(Event, on_delete=models.CASCADE)
-    '''
-#class EventOrganisers():
-    #event = models.ForeignKey(Event, on_delete=models.CASCADE)

@@ -4,7 +4,8 @@
 
 {% block event_nav_organisers %}active{% endblock %}
 {% block event_content %}
-<h2>Event Organisers</h2>
+    <h2>Event Organisers</h2>
+    <hr/>
   {% if object.users_organisers.all %}
     <ul class="list-group">
       {% for user in object.users_organisers.all %}
@@ -14,7 +15,9 @@
   {% else %}
     <p>No organisers for this Event.</p>
   {% endif %}
-  <h2>Event Trustees</h2>
+    <hr/>
+    <h2>Event Trustees</h2>
+    <hr/>
   {% if object.users_trustees.all %}
     <ul class="list-group">
       {% for user in object.users_trustees.all %}
@@ -24,7 +27,9 @@
   {% else %}
     <p>No trustees for this Event.</p>
   {% endif %}
-  <h2>Voters</h2>
+    <hr/>
+    <h2>Voters</h2>
+    <hr/>
   {% if object.voters.all %}
     <ul class="list-group">
       {% for voter in object.voters.all %}

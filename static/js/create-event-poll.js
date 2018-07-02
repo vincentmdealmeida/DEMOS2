@@ -705,7 +705,11 @@ function processFileChange(event) {
     }
 }
 
-document.getElementById('files').addEventListener('change', processFileChange, false);
+var filesHandle = document.getElementById('files');
+
+if(filesHandle) {
+    filesHandle.addEventListener('change', processFileChange, false);
+}
 
 // reCAPTCHA
 

@@ -1,6 +1,8 @@
 *.pyc
 *.sqlite
 *.sqlite3
+package-lock.json
+node_modules/
 __pycache__
 migrations/
 build

@@ -26,6 +26,9 @@ TEMPLATE_DEBUG = True
 
 ALLOWED_HOSTS = ['web.server.com']
 
+# Domain the application is deployed on (Needs changing for production)
+# This must not include the protocol nor any trailing slashes as application code should just add this in
+DOMAIN = "127.0.0.1:8000"
 
 # Application definition
 
@@ -163,8 +166,8 @@ MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
 #EMAIL_PORT = 1025
 
 EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_HOST_USER = 'username@gmail.com' 
-EMAIL_HOST_PASSWORD = 'password'
+EMAIL_HOST_USER = 'demos2.no.reply@gmail.com'
+EMAIL_HOST_PASSWORD = 'Demos2LancsUni'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
