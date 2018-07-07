@@ -46,9 +46,13 @@
                        </td>
                        <td class="text-center">
                            <div class="btn statusBtn
-                                       {% if event.status == 'Expired' %}btn-danger{% endif %}
+                                       {% if event.status == 'Future' %}btn-info{% endif %}
+                                       {% if event.status == 'Prepared' %}btn-info{% endif %}
                                        {% if event.status == 'Active' %}btn-success{% endif %}
-                                       {% if event.status == 'Future' %}btn-info{% endif %}">
+                                       {% if event.status == 'Expired' %}btn-danger{% endif %}
+                                       {% if event.status == 'Ended' %}btn-danger{% endif %}
+                                       {% if event.status == 'Decrypted' %}btn-primary{% endif %}
+                                        ">
                                {{ event.status }}
                            </div>
                        </td>

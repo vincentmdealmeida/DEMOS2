@@ -18,6 +18,7 @@
   crossorigin="anonymous"></script>
 <script src="{% static 'js/papaparse.min.js' %}" type="text/javascript"></script>
 <script src="{% static 'js/create-event-poll.js' %}" type="text/javascript"></script>
+<script src="{% static 'js/decrypt_event.js' %}" type="text/javascript"></script>
 <script src="{% static 'js/encrypt.js' %}" type="text/javascript"></script>
 
 <script type="text/javascript" src="{% static 'js/core/rand.js' %}"></script>
@@ -74,15 +75,19 @@
 
   //new function
   demosEncrypt.encryptAndSubmit = function() {
-    var ctx = new CTX("BN254CX"); //new context we can use
+    // Disable the enc and submit button to prevent fn from being called twice
+    $('#keygen-btn').prop("disabled", true);
+
+    // Elliptic curve cryptography params used for encryption of encrypted vote
+    // fragments
+    var ctx = new CTX("BN254CX");
     var n = new ctx.BIG();
     var g1 = new ctx.ECP();
     var g2 = new ctx.ECP2();
 
-    var param = $('#event-param').val();
-    //console.log(param); 
+    var parameter = $('#event-param').val();
+    var tempParams = JSON.parse(JSON.parse(parameter).crypto);
 
-    var tempParams = JSON.parse(param);
     //copying the values 
     n.copy(tempParams.n);
     g1.copy(tempParams.g1);
@@ -92,26 +97,55 @@
       n:n,
       g1:g1,
       g2:g2
-    }
+    };
 
-    var tempPK = JSON.parse($('#comb_pk').val()); 
-
+    var tempPK = JSON.parse($('#comb_pk').val());
     var pk = new ctx.ECP(0);
     pk.copy(tempPK.PK);
-    var answer = $('#poll-options').val();
-    console.log(answer);
-    var cipher = encrypt(params, pk, answer);   
-   
-    var c1Bytes = [];
-    cipher.C1.toBytes(c1Bytes); 
-    var c2Bytes = [];
-    cipher.C2.toBytes(c2Bytes);
 
-    $('#id_cipher_text_c1').val(c1Bytes.toString());
-    $('#id_cipher_text_c2').val(c2Bytes.toString());
+    // Obtain the user's selection (their vote) and encrypt the fragments of the binary encoding
+    const selection = $('#poll-options').val();
+    const selectionFragments = selection.split(',');
 
+    var cipherForm = document.getElementById("cipher-form");
+
+    for(var i = 0; i < selectionFragments.length; i++) {
+        // Encrypt this fragment for the selection
+        var cipher = encrypt(params, pk, parseInt(selectionFragments[i]));
+
+        // Store C1 and C2 from the cipher in 2 arrays
+        var c1Bytes = [];
+        cipher.C1.toBytes(c1Bytes);
+
+        var c2Bytes = [];
+        cipher.C2.toBytes(c2Bytes);
+
+        // Inject hidden input controls into the form that represents a single ballot
+        var c1Input = document.createElement("input");
+        c1Input.setAttribute("type", "hidden");
+        c1Input.setAttribute("name", "cipher_c1_frag_" + i);
+        c1Input.setAttribute("value", c1Bytes.toString());
+
+        var c2Input = document.createElement("input");
+        c2Input.setAttribute("type", "hidden");
+        c2Input.setAttribute("name", "cipher_c2_frag_" + i);
+        c2Input.setAttribute("value", c2Bytes.toString());
+
+        cipherForm.appendChild(c1Input);
+        cipherForm.appendChild(c2Input);
+    }
+
+    // Inject a final input control into the form which specifies the number of fragments
+    // That make up an encrypted vote
+    var fragCountInput = document.createElement("input");
+    fragCountInput.setAttribute("type", "hidden");
+    fragCountInput.setAttribute("name", "vote_frag_count");
+    fragCountInput.setAttribute("value", "" + selectionFragments.length);
+    cipherForm.appendChild(fragCountInput);
+
+    // Submit the encrypted vote to the server
     $('#cipher-form').submit();
-  }
+  };
 
 
   //new function
@@ -149,7 +183,7 @@
 
   //new function
   demosEncrypt.generateKeys = function() {
-    parameter = $("#event-param").val();
+    var parameter = $("#event-param").val();
     var tempParams = JSON.parse(JSON.parse(parameter).crypto);
     //the full objects need to be initalised as per the library, then copy the values we need into it
     //I follow Bingsheng's code as to what objects are used in the parameter object
