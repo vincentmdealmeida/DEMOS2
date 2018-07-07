@@ -14,9 +14,10 @@
     "url": "https://github.com/vincentmdealmeida/DEMOS2"
   },
   "keywords": [],
-  "author": "Bingsheng Zang, Thomas Smith",
+  "author": "Bingsheng Zang, Thomas Smith, Vincent de Almeida",
   "license": "ISC",
   "dependencies": {
+    "body-parser": "^1.18.3",
     "express": "^4.16.3",
     "milagro-crypto-js": "git+https://github.com/milagro-crypto/milagro-crypto-js.git"
   }

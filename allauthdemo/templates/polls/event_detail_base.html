@@ -9,12 +9,22 @@
     {% if is_organiser %}
         <div>
             <!-- Heading -->
-            <div class="col-xs-7 col-sm-9 col-md-10">
+            <div class="col-xs-7 col-sm-9 col-md-9">
                 <h2>Event: {{object.title}}</h2>
             </div>
             <!-- Edit Button -->
-            <div class="col-xs-5 col-sm-3 col-md-2 marginTopEditButton">
-                <a href="{% url 'polls:edit-event' event.id %}" class="btn btn-primary" style="float: right;">
+            <div class="col-xs-5 col-sm-3 col-md-3 marginTopEditButton">
+                {% if object.has_received_votes and object.ended == False %}
+                    <a href="{% url 'polls:end-event' event.id %}" class="btn btn-danger" style="float: right;">
+                        <span class="glyphicon glyphicon-stop"></span> End
+                    </a>
+                {% endif %}
+                {% if decrypted == True and object.ended == True %}
+                    <a href="{% url 'polls:event-results' event.id %}" class="btn btn-success" style="float: right;">
+                        <span class="glyphicon glyphicon-stats"></span> Results
+                    </a>
+                {% endif %}
+                <a href="{% url 'polls:edit-event' event.id %}" class="btn btn-primary" style="float: right; margin-right: 0.4em;">
                     <span class="fa fa-pencil"></span> Edit
                 </a>
             </div>
@@ -40,11 +50,11 @@
           <a href="{% url 'polls:event-polls' event.id %}"><strong>Polls ({{ object.polls.count }})</strong></a>
         </li>
         <li class="{% block event_nav_organisers %}{% endblock %}">
-          <a href="{% url 'polls:event-organisers' event.id %}"><strong>Entities</strong></a>
+          <a href="{% url 'polls:event-entities' event.id %}"><strong>Entities</strong></a>
         </li>
         {% if is_organiser %}
           <li class="{% block event_nav_launch %}{% endblock %}">
-            <a href="{% url 'polls:launch-event' event.id %}"><strong>Advanced</strong></a>
+            <a href="{% url 'polls:event-advanced' event.id %}"><strong>Advanced</strong></a>
           </li>
         {% endif %}
     </ul>

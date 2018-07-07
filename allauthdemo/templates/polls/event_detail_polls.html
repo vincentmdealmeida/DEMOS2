@@ -6,7 +6,7 @@
 {% block event_content %}
   {% if object.polls.all %}
     {% for poll in object.polls.all %}
-        <h3>Poll: {{ poll.question_text }} (<a href="{% url 'polls:view-poll' event_id=event.id poll_num=forloop.counter %}">Edit</a>)</h3>
+        <h3>Poll: {{ poll.question_text }} (<a href="{% url 'polls:edit-poll' event_id=event.id poll_num=forloop.counter %}">Edit</a>)</h3>
         <br/>
         <h4>Poll Options:</h4>
         <ul class="list-group">

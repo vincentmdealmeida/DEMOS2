@@ -2,24 +2,22 @@ import urllib
 import urllib2
 import json
 
-from io import StringIO
 from django.contrib import messages
 from django.http import HttpResponseRedirect, HttpResponse, Http404
 from django.http.response import HttpResponseNotAllowed
 from django.core.urlresolvers import reverse
-from django.shortcuts import get_object_or_404, render, render_to_response
-from django.utils import timezone
+from django.shortcuts import get_object_or_404, render
 from django.views import generic
 from django.conf import settings
-from django.core import serializers
 
-from .forms import EventForm, PollForm, OptionFormset, QuestionFormset, OrganiserFormSet, TrusteeFormSet, VoteForm, EventSetupForm, EventEditForm, DecryptionFormset, DecryptionFormSetHelper
-from .models import Event, Poll, PollOption, EmailUser, Ballot, TrusteeKey, Decryption
+from .forms import PollForm, OptionFormset, VoteForm, EventSetupForm, EventEditForm
+from .models import Event, Poll, Ballot, EncryptedVote, TrusteeKey, TrusteeSK
 from allauthdemo.auth.models import DemoUser
 
-from .tasks import email_trustees_prep, update_EID, generate_combpk, generate_enc, tally_results
+from .tasks import email_trustees_prep, update_EID, generate_combpk, event_ended, create_ballots, create_ballots_for_poll, email_voters_vote_url, gen_event_sk_and_dec
 
 from .utils.EventModelAdaptor import EventModelAdaptor
+
 
 class EventListView(generic.ListView):
 
@@ -30,6 +28,7 @@ class EventListView(generic.ListView):
         #context['now'] = timezone.now()
         return context
 
+
 class EventDetailView(generic.DetailView):
     template_name="polls/event_detail_details.html"
     model = Event
@@ -37,38 +36,32 @@ class EventDetailView(generic.DetailView):
     def get_context_data(self, **kwargs):
         context = super(EventDetailView, self).get_context_data(**kwargs)
         context['is_organiser'] = ((not self.request.user.is_anonymous()) and (self.object.users_organisers.filter(email=self.request.user.email).exists()))
+        context['decrypted'] = self.object.status() == "Decrypted"
 
-        #context['now'] = timezone.now()
         return context
 
 
 class EventDetailPollsView(EventDetailView):
-    template_name="polls/event_detail_polls.html"
+    template_name = "polls/event_detail_polls.html"
 
-class EventDetailOrganisersView(EventDetailView):
-    template_name="polls/event_detail_organisers.html"
 
-class EventDetailLaunchView(EventDetailView):
-    template_name="polls/event_detail_launch.html"
+class EventDetailEntitiesView(EventDetailView):
+    template_name = "polls/event_detail_entities.html"
+
+
+class EventDetailAdvancedView(EventDetailView):
+    template_name = "polls/event_detail_advanced.html"
+
 
 class PollDetailView(generic.View):
-
     model = Poll
 
     def get_context_data(self, **kwargs):
         context = super(PollDetailView, self).get_context_data(**kwargs)
-        #context['now'] = timezone.now()
         context['form'] = VoteForm(instance=self.object)
         context['poll_count'] = self.object.event.polls.all().count()
         return context
 
-#my_value = self.kwargs.get('key', 'default_value')
-
-def test_poll_detail(request, event_id, poll_num, key=None):
-    context = {}
-    context['form'] = VoteForm(instance=self.object)
-    context['poll_count'] = self.object.event.polls.all().count()
-    return render(request, "polls/event_setup.html", context)
 
 def util_get_poll_by_event_index(event, poll_num):
     try:
@@ -80,77 +73,113 @@ def util_get_poll_by_event_index(event, poll_num):
         return None
     return poll
 
+
 def edit_poll(request, event_id, poll_num):
     event = get_object_or_404(Event, pk=event_id)
-    event_poll_count = event.polls.all().count()
     poll = util_get_poll_by_event_index(event, poll_num)
 
     if (poll == None):
         raise Http404("Poll does not exist")
 
-    form = PollForm(instance=poll, prefix="main")
-    formset = OptionFormset(instance=poll, prefix="formset_options")
-    return render(request, "polls/generic_form.html", {'form_title': "Edit Poll: " + poll.question_text, 'form': form, 'option_formset': formset})
+    if request.method == 'GET':
+        form = PollForm(instance=poll, prefix="main")
+        formset = OptionFormset(instance=poll, prefix="formset_options")
+        return render(request, "polls/generic_form.html", {'form_title': "Edit Poll: " + poll.question_text, 'form': form, 'option_formset': formset})
+    elif request.method == 'POST':
+        form = PollForm(request.POST, instance=poll, prefix="main")
 
-def view_poll(request, event_id, poll_num):
-    #return HttpResponse(param("012345"))
-    #return HttpResponse(combpk(param("012345"), "ABzqvL+pqTi+DNLLRcM62RwCoaZTaXVbOs3sk4fc0+Dc 0 AAaQd6S1x+bcgnkDp2ev5mTt34ICQdZIzP9GaqG4x5sy 0" "ABhQay9jI4pZvkAETNwfo8iwJ8eBMkjqplqAiu/FZxMy 0 ABPxj0jVj3rt0VW54iv4tV02gYtujnR41t5gf97asrPs 0 ABfoiW03bsYIUgfAThmjurmOViKy9L89vfkIavhQIblm 1 ABhQay9jI4pZvkAETNwfo8iwJ8eBMkjqplqAiu/FZxMy 0 ABPxj0jVj3rt0VW54iv4tV02gYtujnR41t5gf97asrPs 0 ABfoiW03bsYIUgfAThmjurmOViKy9L89vfkIavhQIblm 1 ABhQay9jI4pZvkAETNwfo8iwJ8eBMkjqplqAiu/FZxMy 0 ABPxj0jVj3rt0VW54iv4tV02gYtujnR41t5gf97asrPs 0 ABfoiW03bsYIUgfAThmjurmOViKy9L89vfkIavhQIblm 1"))
-    #return HttpResponse(addec("ACMW70Yj3+mJ/FO+6VOSDGYPYHf7NoTXdpInbfzUqYpH 0 ABV4Mo496B0FW3AW/7gY6Fs+oz6BwfwilonMYeriUyV/ 0 AAg+bdGhs3sxSxAc/wcKdBNUy+el8A2b4yVYShNOb8uX 0 AAspJbn5V2AaY4CgLkzCkHwUWbC5nyxrBzw+o4Az8HVM 1 ABKI7o5Yhgi44XwpFnPpLnH0/czbXA8y5vM4ucV8vojo 1 AAwVrT9+dcQsqRZYoI7+QsJvWOgd7JaJpfI6envmC2jU 1 ABIZO0DK4OrdROD805of6iRk2RenonGYmo2qG2IB1sj/ 1 ACMUHQdjGN0wyCd2AgDHMk9u0TpnywNVtamHWopGho8L 0 ABNT5lbE4siC3QklQXRvTwSQPwtme91+UrIr9iXT3y84 1 ABib0mmQ9ZVCrErqFwDgoRp3jHPpjHGQR2vsMVlwM+vI 0 ABvf3cg1NSS8fn6EKJNnTomeoflcEY1WBxkPPKrBBFl+ 0 ACBUZAtolN4HNh+mw4jLZuHzD+/rYHKR5av16PUc6BJF 0", "2"))
-    #return HttpResponse(tally("ACNQLLQlh+lNm1Dc+X+dEI0ECVLTkxRHjRnzX1OA+HtW 0 AAWOsUZK/G/cjhUee/gPAXop3Bc0CTVG3iDdQxD6+XqV 0", "ACNQLLQlh+lNm1Dc+X+dEI0ECVLTkxRHjRnzX1OA+HtW 0 0 2", "2"))
+        if form.is_valid():
+            form.save()
+
+            formset = OptionFormset(request.POST, instance=poll, prefix="formset_options")
+
+            if formset.is_valid():
+                formset.save()
+                return HttpResponseRedirect(reverse('polls:event-polls', args=[poll.event_id]))
+
+
+def event_vote(request, event_id, poll_num):
     event = get_object_or_404(Event, pk=event_id)
-    if (not event.prepared):
+
+    if not event.prepared:
         messages.add_message(request, messages.WARNING, "This Event isn\'t ready for voting yet.")
         return HttpResponseRedirect(reverse("user_home"))
+
     event_poll_count = event.polls.all().count()
     prev_poll_index, next_poll_index = False, False
-    can_vote, has_voted, voter_email, vote_count = False, False, "", 0
+    can_vote, has_voted, voter_email = False, False, ""
     poll = util_get_poll_by_event_index(event, poll_num)
 
-    if (poll == None):
-        raise Http404("Poll does not exist")
+    if poll is None:
+        messages.add_message(request, messages.ERROR, "There was an error loading the voting page.")
+        return HttpResponseRedirect(reverse("user_home"))
 
-    form = VoteForm(instance=poll)
-    poll_num = int(poll_num) # now known to be safe as it suceeded in the util function
+    poll_num = int(poll_num) # now known to be safe as it succeeded in the util function
 
-    if (poll_num > 1):
+    if poll_num > 1:
         prev_poll_index = (poll_num - 1)
-    if (poll_num < event_poll_count):
+    if poll_num < event_poll_count:
         next_poll_index = (poll_num + 1)
 
     access_key = request.GET.get('key', None)
     email_key = event.keys.filter(key=access_key)
-    vote_count = Ballot.objects.filter(poll=poll, cast=True).count()
 
-    if (email_key.exists() and event.voters.filter(email=email_key[0].user.email).exists()):
-        ballot = Ballot.objects.filter(voter=email_key[0].user, poll=poll)
-        if (ballot.exists() and ballot[0].cast):
-            has_voted = True
-
-    if (access_key and email_key.exists()): #or (can_vote(request.user, event))
+    ballot = None
+    if email_key.exists() and event.voters.filter(email=email_key[0].user.email).exists():
+        # Passing this test means the user can vote
         voter_email = email_key[0].user.email
         can_vote = True
 
-    if (request.method == "POST"):
-        form = VoteForm(request.POST, instance=poll)
-        if (email_key.exists()):
-            #return HttpResponse(email_key[0].key)
-            ballot = Ballot.objects.get_or_create(voter=email_key[0].user, poll=poll)[0]
+        # Check whether this is the first time a user is voting
+        ballot = Ballot.objects.filter(voter=email_key[0].user, poll=poll)
+        if ballot.exists() and ballot[0].cast:
+            has_voted = True
+    else:
+        messages.add_message(request, messages.ERROR, "You don\'t have permission to vote in this event.")
+        return HttpResponseRedirect(reverse("user_home"))
 
-        if (form.is_valid()):
-            ballot.cipher_text_c1 = request.POST["cipher_text_c1"]
-            ballot.cipher_text_c2 = request.POST["cipher_text_c2"]
-            ballot.cast = True
-            ballot.save()
-            if (next_poll_index):
-                return HttpResponseRedirect(reverse('polls:view-poll', kwargs={'event_id': event.id, 'poll_num': next_poll_index }) + "?key=" + email_key[0].key)
-            else:
-                return HttpResponse("Voted successfully!") # finished all polls in event
+    if request.method == "POST":
+        if ballot is None:
+            ballot = Ballot.objects.get_or_create(voter=email_key[0].user, poll=poll)
 
-    return render(request, "polls/poll_detail.html",
-        {"object": poll, "poll_num": poll_num , "event": event, "form": form, "poll_count": event.polls.all().count(),
-            "prev_index": prev_poll_index , "next_index": next_poll_index,
-            "can_vote": can_vote, "voter_email": voter_email, "has_voted": has_voted, "vote_count": vote_count
+        # Will store the fragments of the encoding scheme that define the vote
+        encrypted_vote = EncryptedVote.objects.get_or_create(ballot=ballot[0])[0]
+
+        # Clear any existing fragments - a voter changing their vote
+        encrypted_vote.fragment.all().delete()
+
+        # Add in the new ciphers
+        fragment_count = int(request.POST['vote_frag_count'])
+        for i in range(fragment_count):
+            i_str = str(i)
+
+            cipher_c1 = request.POST['cipher_c1_frag_' + i_str]
+            cipher_c2 = request.POST['cipher_c2_frag_' + i_str]
+
+            encrypted_vote.fragment.create(encrypted_vote=encrypted_vote,
+                                           cipher_text_c1=cipher_c1,
+                                           cipher_text_c2=cipher_c2)
+
+        ballot[0].cast = True
+        ballot[0].save()
+
+        if next_poll_index:
+            return HttpResponseRedirect(reverse('polls:event-vote', kwargs={'event_id': event.id, 'poll_num': next_poll_index }) + "?key=" + email_key[0].key)
+        else:
+            # The user has finished voting in the event
+            success_msg = 'You have successfully cast your vote(s)!'
+            messages.add_message(request, messages.SUCCESS, success_msg)
+
+            return HttpResponseRedirect(reverse("user_home"))
+
+    return render(request, "polls/event_vote.html",
+        {
+            "object": poll, "poll_num": poll_num, "event": event, "poll_count": event.polls.all().count(),
+            "prev_index": prev_poll_index, "next_index": next_poll_index, "min_selection": poll.min_num_selections,
+            "max_selection": poll.max_num_selections, "can_vote": can_vote, "voter_email": voter_email,
+            "has_voted": has_voted
         })
+
 
 def event_trustee_setup(request, event_id):
     # Obtain the event and the event preparation access key that's been supplied
@@ -178,68 +207,82 @@ def event_trustee_setup(request, event_id):
                     # The event will now be ready to receive votes on the various polls that have been defined -
                     # voters therefore need to be informed
                     if event.trustee_keys.count() == event.users_trustees.count():
+                        create_ballots.delay(event)
                         generate_combpk.delay(event)
-                        # TODO: Create Celery task that generates voting URLs for voters as well as creates the ballots
+                        email_voters_vote_url.delay(event.voters.all(), event)
 
-                    success_msg = 'You have successfully submitted your public key for this event'
+                    success_msg = 'You have successfully submitted your public key for this event!'
                     messages.add_message(request, messages.SUCCESS, success_msg)
 
-                    # This re-direct may not be appropriate for trustees that don't have logins
                     return HttpResponseRedirect(reverse("user_home"))
             else:
                 form = EventSetupForm()
-                return render(request, "polls/event_setup.html", {"event": event, "form": form})
+                return render(request, "polls/event_setup.html", {"event": event, "form": form, "user_email": email_key[0].user.email})
 
     #if no key or is invalid?
     messages.add_message(request, messages.WARNING, 'You do not have permission to access: ' + request.path)
     return HttpResponseRedirect(reverse("user_home"))
 
-def event_addec(request, event_id):
+
+def event_end(request, event_id):
     event = get_object_or_404(Event, pk=event_id)
-    for poll in event.polls.all():
-        generate_enc.delay(poll)
-    return HttpResponse("Generating enc.")
+
+    if not event.ended:
+        event_ended.delay(event)
+
+        # Mark the event as ended
+        event.ended = True
+        event.save()
+
+    return HttpResponseRedirect(reverse('polls:view-event', args=[event_id]))
+
+
+# Returns a JSONed version of the results
+def results(request, event_id):
+    event = get_object_or_404(Event, pk=event_id)
+    polls = event.polls.all()
+
+    results = ""
+    results += "{\"polls\":["
+    for poll in polls:
+        results += poll.enc
+
+    results += "]}"
+
+    return HttpResponse(results)
+
 
 def event_trustee_decrypt(request, event_id):
     event = get_object_or_404(Event, pk=event_id)
     access_key = request.GET.get('key', None)
-    if (access_key):
-        email_key = event.keys.filter(key=access_key)
-        if (email_key.exists() and event.users_trustees.filter(email=email_key[0].user.email).exists()):
-            if (Decryption.objects.filter(event=event, user=email_key[0].user).exists()):
-                messages.add_message(request, messages.WARNING, 'You have already provided your decryptions for this event')
-                #if (event.decryptions.count() == (event.polls.count() * event.users_trustees.count())):
-                #    tally_results.delay(event) # all keys are in
-                return HttpResponseRedirect(reverse("user_home"))
-            elif (request.method == "GET"):
-                initial = []
-                for poll in event.polls.all():
-                    initial.append({'text': poll.enc })
-                formset = DecryptionFormset(initial=initial)
-            else:
-                formset = DecryptionFormset(request.POST)
-                data = []
-                for form in formset:
-                    if form.is_valid():
-                        data.append(form.cleaned_data.get('text'))
-                if (len(data) == event.polls.count()):
-                    for dec, poll in zip(data, event.polls.all()):
-                        Decryption.objects.get_or_create(user=email_key[0].user, event=event, poll=poll, text=dec)
-                    messages.add_message(request, messages.SUCCESS, 'Decryption complete.')
-                    if (event.decryptions.count() == (event.polls.count() * event.users_trustees.count())):
-                        tally_results.delay(event) # all keys are in
-                else:
-                    messages.add_message(request, messages.ERROR, 'You didn\'t provide decryptions for every poll. Please try again.')
-                return HttpResponseRedirect(reverse("user_home"))
-            return render(request, "polls/event_decrypt.html", {"event": event, "formset": formset, "helper": DecryptionFormSetHelper() })
 
+    if access_key:
+        email_key = event.keys.filter(key=access_key)
+
+        if email_key.exists() and event.users_trustees.filter(email=email_key[0].user.email).exists():
+            if TrusteeSK.objects.filter(event=event, trustee=email_key[0].user).exists():
+                messages.add_message(request, messages.WARNING, 'You have already provided your decryption key for this event')
+                return HttpResponseRedirect(reverse("user_home"))
+            elif request.method == "GET":
+                return render(request, "polls/event_decrypt.html", {"event": event, "user_email": email_key[0].user.email})
+            elif request.method == "POST":
+                sk = request.POST['secret-key']
+
+                TrusteeSK.objects.create(event=event,
+                                         trustee=email_key[0].user,
+                                         key=sk)
+
+                if event.trustee_sk.count() == event.users_trustees.count():
+                    # Generate the event SK and decrypt the event to tally the results
+                    gen_event_sk_and_dec.delay(event)
+
+                messages.add_message(request, messages.SUCCESS, 'Your secret key has been successfully submitted')
+                return HttpResponseRedirect(reverse("user_home"))
+
+    # Without an access key, the client does not have permission to access this page
     messages.add_message(request, messages.WARNING, 'You do not have permission to decrypt this Event.')
     return HttpResponseRedirect(reverse("user_home"))
 
-def test_poll_vote(request, poll_id):
-    poll = get_object_or_404(Poll, pk=poll_id)
-    form = VoteForm(instance=poll)
-    return render(request, "polls/vote_poll.html", {"vote_form": form, "poll": poll})
 
 def manage_questions(request, event_id):
 
@@ -262,7 +305,7 @@ def manage_questions(request, event_id):
             formset = OptionFormset(request.POST, prefix="formset_organiser", instance=poll)
             if formset.is_valid():
                 formset.save()
-                #create_ballots.delay(poll)
+                create_ballots_for_poll.delay(poll)
                 messages.add_message(request, messages.SUCCESS, 'Poll created successfully')
                 return HttpResponseRedirect(reverse('polls:event-polls', args=[poll.event_id]))
 
@@ -274,6 +317,7 @@ def manage_questions(request, event_id):
     else:
         return HttpResponseNotAllowed()
 
+
 def render_invalid(request, events, demo_users, invalid_fields):
     return render(request,
                   "polls/create_event.html",
@@ -284,6 +328,7 @@ def render_invalid(request, events, demo_users, invalid_fields):
                       "demo_users": demo_users,
                       "invalid_fields": invalid_fields
                   })
+
 
 def create_event(request):
     # Obtain context data for the rendering of the html template and validation
@@ -347,6 +392,7 @@ def create_event(request):
     else:
         return HttpResponseNotAllowed()
 
+
 def edit_event(request, event_id):
     event = get_object_or_404(Event, pk=event_id)
     if request.method == "GET":
@@ -384,7 +430,6 @@ def edit_event(request, event_id):
     return render(request, "polls/generic_form.html", {"form_title": "Edit Event: " + event.title, "form": form}) #"organiser_formset": organiser_formset, "trustee_formset": trustee_formset})
         #trustee_formset = TrusteeFormSet(request.POST, prefix="formset_trustee", instance=event)
 
-#class CreatePoll(generic.View):
 
 def del_event(request, event_id):
     event = get_object_or_404(Event, pk=event_id)
@@ -393,8 +438,3 @@ def del_event(request, event_id):
     elif request.method == "POST":
         event.delete()
         return HttpResponseRedirect(reverse('polls:index'))
-
-def can_vote(user, event):
-    if event.voters.filter(email=user.email).exists():
-        return True
-    return False

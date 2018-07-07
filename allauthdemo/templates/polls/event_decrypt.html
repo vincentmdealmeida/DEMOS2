@@ -7,24 +7,24 @@
 {% block content %}
 
 <div class="container">
-  <h1>Event: {{event.title}}</h1>
-  <h2>Trustee Decrypt</h2>
+  <h2>Trustee Event Decryption for Event '{{ event.title }}'</h2>
+    <hr/>
   <div class="panel panel-default">
-    <div class="panel-heading">Secret Key</div>
+      <div class="panel-heading"><strong>Submit your Secret Key as '{{ user_email }}'</strong></div>
     <div class="panel panel-body">
-      <input id="secret-key" class="textinput textInput form-control" type="text"></input>
-      <p>Use your secret key to generate a decrypted cipher</p>
-      <button id="keygen-btn" onclick="demosEncrypt.decryptCipher()" class="btn btn-default">Decrypt</button>
-    </div>
-  </div>
-  <div class="panel panel-default">
-    <div class="panel-heading">Encrypted Ciphers</div>
-    <div class="panel panel-body">
-      {% load crispy_forms_tags %}
-      <form method="post" action="" class="">
-         {% crispy formset helper %}
-         <input class="btn btn-default" type="submit" value="Submit" disabled>
-     </form>
+        <form id="sk-form" method="POST">
+            {% csrf_token %}
+            <input id="secret-key" name="secret-key" class="textinput textInput form-control" type="text"/>
+            <div class="alert alert-info" role="alert" style="margin-top: 0.75em;">
+              Your secret key will be used to decrypt the event and get a vote tally for every poll.
+            </div>
+            <label for="files_sk_upload" class="btn btn-primary">
+              <span class="glyphicon glyphicon-cloud-upload"></span>
+              Upload Key
+            </label>
+            <input type="file" id="files_sk_upload" name="file" class="btn-info">
+            <input type="submit" value="Submit" class="btn btn-success"/>
+        </form>
     </div>
   </div>
 </div>

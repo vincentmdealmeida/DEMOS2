@@ -539,12 +539,9 @@ class EventModelAdaptor:
         # Extract the list of trustees
         trustees_list = self.form_data.pop('trustee-email-input')
 
-        for trustee in trustees_list:
-            if trustee != '':
-                if EmailUser.objects.filter(email=trustee).exists():
-                    self.trustees.append(EmailUser.objects.filter(email=trustee).get())
-                else:
-                    self.trustees.append(EmailUser(email=trustee))
+        for trustee_email in trustees_list:
+            if trustee_email != '':
+                self.trustees.append(trustee_email)
 
         # Extract the email list of voters
         voters_csv_string = self.form_data.pop('voters-list-input')[0].replace(' ', '')
@@ -552,17 +549,21 @@ class EventModelAdaptor:
 
         for voter_email in voters_email_list:
             if voter_email != '':
-                if EmailUser.objects.filter(email=voter_email).exists():
-                    self.voters.append(EmailUser.objects.filter(email=voter_email).get())
-                else:
-                    self.voters.append(EmailUser(email=voter_email))
+                self.voters.append(voter_email)
 
         # Create the Event model object - this does not persist it to the DB
+        creator = ""
+        if self.user.first_name is not None:
+            creator += self.user.first_name + " "
+
+        if self.user.last_name is not None:
+            creator += self.user.last_name
+
         self.event = Event(start_time=self.starts_at,
                            end_time=self.ends_at,
                            title=self.event_name,
                            EID=self.identifier,
-                           creator=self.user.first_name + ' ' + self.user.last_name,
+                           creator=creator,
                            c_email=self.user.email,
                            trustees=voters_csv_string)
 
@@ -629,20 +630,21 @@ class EventModelAdaptor:
         # so it can just be added
         self.event.users_organisers = self.organisers
 
-        # Add the list of trustees to the event, making sure they're instantiated
+        # Add the list of trustees to the event
+        db_trustees = list()
         for trustee in self.trustees:
-            if not EmailUser.objects.filter(email=trustee.email).exists():
-                trustee.save()
+            user, created = EmailUser.objects.get_or_create(email=trustee)
+            db_trustees.append(user)
 
-        self.event.users_trustees = self.trustees
+        self.event.users_trustees = db_trustees
 
-        # Add the list of voters to the event, making sure they're instantiated
-        # Additionally, generating the AccessKey for voters
+        # Add the list of voters to the event
+        db_voters = list()
         for voter in self.voters:
-            if not EmailUser.objects.filter(email=voter.email).exists():
-                voter.save()
+            user, created = EmailUser.objects.get_or_create(email=voter)
+            db_voters.append(user)
 
-        self.event.voters = self.voters
+        self.event.voters = db_voters
 
         # Extract all the poll data for the event and associated poll option data
         # This can only be done at this point as the event has been persisted
