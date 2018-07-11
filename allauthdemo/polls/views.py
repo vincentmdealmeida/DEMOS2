@@ -11,10 +11,11 @@ from django.views import generic
 from django.conf import settings
 
 from .forms import PollForm, OptionFormset, VoteForm, EventSetupForm, EventEditForm
-from .models import Event, Poll, Ballot, EncryptedVote, TrusteeKey, TrusteeSK
+from .models import Event, Poll, Ballot, EncryptedVote, TrusteeKey, PartialBallotDecryption, CombinedBallot
 from allauthdemo.auth.models import DemoUser
 
-from .tasks import email_trustees_prep, update_EID, generate_combpk, event_ended, create_ballots, create_ballots_for_poll, email_voters_vote_url, gen_event_sk_and_dec
+from .tasks import email_trustees_prep, update_EID, generate_combpk, event_ended, create_ballots
+from .tasks import create_ballots_for_poll, email_voters_vote_url, combine_decryptions_and_tally
 
 from .utils.EventModelAdaptor import EventModelAdaptor
 
@@ -25,17 +26,16 @@ class EventListView(generic.ListView):
 
     def get_context_data(self, **kwargs):
         context = super(EventListView, self).get_context_data(**kwargs)
-        #context['now'] = timezone.now()
         return context
 
 
 class EventDetailView(generic.DetailView):
-    template_name="polls/event_detail_details.html"
+    template_name = "polls/event_detail_details.html"
     model = Event
 
     def get_context_data(self, **kwargs):
         context = super(EventDetailView, self).get_context_data(**kwargs)
-        context['is_organiser'] = ((not self.request.user.is_anonymous()) and (self.object.users_organisers.filter(email=self.request.user.email).exists()))
+        context['is_organiser'] = (not self.request.user.is_anonymous()) and (self.object.users_organisers.filter(email=self.request.user.email).exists())
         context['decrypted'] = self.object.status() == "Decrypted"
 
         return context
@@ -63,20 +63,13 @@ class PollDetailView(generic.View):
         return context
 
 
-def util_get_poll_by_event_index(event, poll_num):
-    try:
-        poll_num = int(poll_num)
-        if ((poll_num < 1) or (poll_num > event.polls.all().count())):
-            return None
-        poll = event.polls.filter().order_by('id')[poll_num-1] # index field eventually
-    except ValueError:
-        return None
-    return poll
+def util_get_poll_by_event_index(event, poll_id):
+    return event.polls.get(uuid=poll_id)
 
 
-def edit_poll(request, event_id, poll_num):
+def edit_poll(request, event_id, poll_id):
     event = get_object_or_404(Event, pk=event_id)
-    poll = util_get_poll_by_event_index(event, poll_num)
+    poll = util_get_poll_by_event_index(event, poll_id)
 
     if (poll == None):
         raise Http404("Poll does not exist")
@@ -98,33 +91,50 @@ def edit_poll(request, event_id, poll_num):
                 return HttpResponseRedirect(reverse('polls:event-polls', args=[poll.event_id]))
 
 
-def event_vote(request, event_id, poll_num):
+def event_vote(request, event_id, poll_id):
     event = get_object_or_404(Event, pk=event_id)
 
     if not event.prepared:
         messages.add_message(request, messages.WARNING, "This Event isn\'t ready for voting yet.")
         return HttpResponseRedirect(reverse("user_home"))
 
-    event_poll_count = event.polls.all().count()
-    prev_poll_index, next_poll_index = False, False
-    can_vote, has_voted, voter_email = False, False, ""
-    poll = util_get_poll_by_event_index(event, poll_num)
+    # Lookup the specified poll
+    poll = event.polls.get(uuid=poll_id)
 
     if poll is None:
         messages.add_message(request, messages.ERROR, "There was an error loading the voting page.")
         return HttpResponseRedirect(reverse("user_home"))
 
-    poll_num = int(poll_num) # now known to be safe as it succeeded in the util function
+    polls = event.polls.all()
+    event_poll_count = len(polls)
+    prev_poll_uuid, next_poll_uuid, poll_num = False, False, 0
+    can_vote, cant_vote_reason, has_voted, voter_email = False, "", False, ""
 
-    if poll_num > 1:
-        prev_poll_index = (poll_num - 1)
-    if poll_num < event_poll_count:
-        next_poll_index = (poll_num + 1)
+    for i in range(event_poll_count):
+        poll = polls[i]
+        poll_uuid = str(poll.uuid)
+        req_poll_uuid = str(poll_id)
+
+        if poll_uuid == req_poll_uuid:
+            poll_num = str(i+1)
+
+            # If current voting request isn't for the last poll, then make sure we link to the next
+            if i != event_poll_count - 1:
+                # Only set the previous poll's uuid if we're not looking at the first poll
+                if i != 0:
+                    prev_poll_uuid = str(polls[i - 1].uuid)
+
+                next_poll_uuid = str(polls[i + 1].uuid)
+            else:
+                if i != 0:
+                    prev_poll_uuid = str(polls[i - 1].uuid)
+
+            break
 
     access_key = request.GET.get('key', None)
     email_key = event.keys.filter(key=access_key)
+    email_key_str = email_key[0].key
 
-    ballot = None
     if email_key.exists() and event.voters.filter(email=email_key[0].user.email).exists():
         # Passing this test means the user can vote
         voter_email = email_key[0].user.email
@@ -135,15 +145,18 @@ def event_vote(request, event_id, poll_num):
         if ballot.exists() and ballot[0].cast:
             has_voted = True
     else:
-        messages.add_message(request, messages.ERROR, "You don\'t have permission to vote in this event.")
-        return HttpResponseRedirect(reverse("user_home"))
+        can_vote = False
+        cant_vote_reason = "You don't have permission to access this page."
+
+    if event.status() != "Active":
+        can_vote = False
+        cant_vote_reason = "The event either isn't ready for voting or it has expired and therefore you cannot vote."
 
     if request.method == "POST":
-        if ballot is None:
-            ballot = Ballot.objects.get_or_create(voter=email_key[0].user, poll=poll)
+        ballot = Ballot.objects.get_or_create(voter=email_key[0].user, poll=poll)[0]
 
         # Will store the fragments of the encoding scheme that define the vote
-        encrypted_vote = EncryptedVote.objects.get_or_create(ballot=ballot[0])[0]
+        encrypted_vote = EncryptedVote.objects.get_or_create(ballot=ballot)[0]
 
         # Clear any existing fragments - a voter changing their vote
         encrypted_vote.fragment.all().delete()
@@ -160,11 +173,13 @@ def event_vote(request, event_id, poll_num):
                                            cipher_text_c1=cipher_c1,
                                            cipher_text_c2=cipher_c2)
 
-        ballot[0].cast = True
-        ballot[0].save()
+        ballot.cast = True
+        ballot.save()
 
-        if next_poll_index:
-            return HttpResponseRedirect(reverse('polls:event-vote', kwargs={'event_id': event.id, 'poll_num': next_poll_index }) + "?key=" + email_key[0].key)
+        if next_poll_uuid:
+            return HttpResponseRedirect(reverse('polls:event-vote', kwargs={'event_id': event.uuid,
+                                                                            'poll_id': next_poll_uuid})
+                                        + "?key=" + email_key_str)
         else:
             # The user has finished voting in the event
             success_msg = 'You have successfully cast your vote(s)!'
@@ -175,9 +190,9 @@ def event_vote(request, event_id, poll_num):
     return render(request, "polls/event_vote.html",
         {
             "object": poll, "poll_num": poll_num, "event": event, "poll_count": event.polls.all().count(),
-            "prev_index": prev_poll_index, "next_index": next_poll_index, "min_selection": poll.min_num_selections,
-            "max_selection": poll.max_num_selections, "can_vote": can_vote, "voter_email": voter_email,
-            "has_voted": has_voted
+            "prev_uuid": prev_poll_uuid, "next_uuid": next_poll_uuid, "min_selection": poll.min_num_selections,
+            "max_selection": poll.max_num_selections, "can_vote": can_vote, "cant_vote_reason": cant_vote_reason,
+            "voter_email": voter_email, "has_voted": has_voted, "a_key": email_key_str
         })
 
 
@@ -245,7 +260,7 @@ def results(request, event_id):
     results = ""
     results += "{\"polls\":["
     for poll in polls:
-        results += poll.enc
+        results += poll.result_json
 
     results += "]}"
 
@@ -260,21 +275,63 @@ def event_trustee_decrypt(request, event_id):
         email_key = event.keys.filter(key=access_key)
 
         if email_key.exists() and event.users_trustees.filter(email=email_key[0].user.email).exists():
-            if TrusteeSK.objects.filter(event=event, trustee=email_key[0].user).exists():
-                messages.add_message(request, messages.WARNING, 'You have already provided your decryption key for this event')
+
+            if PartialBallotDecryption.objects.filter(event=event, user=email_key[0].user).count() == event.total_num_opts():
+
+                warning_msg = 'You have already provided your decryption key for this event - Thank You'
+                messages.add_message(request, messages.WARNING, warning_msg)
+
                 return HttpResponseRedirect(reverse("user_home"))
             elif request.method == "GET":
-                return render(request, "polls/event_decrypt.html", {"event": event, "user_email": email_key[0].user.email})
+                # Gen a list of ciphers from the combined ballots for every opt of every poll
+                polls = event.polls.all()
+                poll_ciphers = []
+
+                for poll in polls:
+                    options = poll.options.all()
+
+                    options_ciphers = []
+                    for option in options:
+                        combined_ballot = CombinedBallot.objects.filter(poll=poll, option=option).get()
+
+                        cipher = {}
+                        cipher['C1'] = combined_ballot.cipher_text_c1
+                        cipher['C2'] = combined_ballot.cipher_text_c2
+                        options_ciphers.append(cipher)
+
+                    poll_ciphers.append(options_ciphers)
+
+                return render(request,
+                              "polls/event_decrypt.html",
+                              {
+                                  "event": event,
+                                  "user_email": email_key[0].user.email,
+                                  "poll_ciphers": poll_ciphers
+                              })
+
             elif request.method == "POST":
-                sk = request.POST['secret-key']
+                polls = event.polls.all()
+                polls_count = len(polls)
 
-                TrusteeSK.objects.create(event=event,
-                                         trustee=email_key[0].user,
-                                         key=sk)
+                for i in range(polls_count):
+                    options = polls[i].options.all()
+                    options_count = len(options)
 
-                if event.trustee_sk.count() == event.users_trustees.count():
-                    # Generate the event SK and decrypt the event to tally the results
-                    gen_event_sk_and_dec.delay(event)
+                    for j in range(options_count):
+                        input_name = ""
+                        input_name = "poll-" + str(i) + "-cipher-" + str(j)
+
+                        part_dec = request.POST[input_name]
+
+                        PartialBallotDecryption.objects.create(event=event,
+                                                               poll=polls[i],
+                                                               option=options[j],
+                                                               user=email_key[0].user,
+                                                               text=part_dec)
+
+                if event.all_part_decs_received():
+                    # TODO: Combine partial decryptions and gen results
+                    combine_decryptions_and_tally.delay(event)
 
                 messages.add_message(request, messages.SUCCESS, 'Your secret key has been successfully submitted')
                 return HttpResponseRedirect(reverse("user_home"))
@@ -434,7 +491,7 @@ def edit_event(request, event_id):
 def del_event(request, event_id):
     event = get_object_or_404(Event, pk=event_id)
     if request.method == "GET":
-        return render(request, "polls/del_event.html", {"event_title": event.title, "event_id": event.id})
+        return render(request, "polls/del_event.html", {"event_title": event.title, "event_id": event.uuid})
     elif request.method == "POST":
         event.delete()
         return HttpResponseRedirect(reverse('polls:index'))

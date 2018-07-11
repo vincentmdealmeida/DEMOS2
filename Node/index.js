@@ -40,7 +40,7 @@ app.get('/', function(request, response){
 app.get('/param', function(request, response){
 	var param = gpGen();
 
-	console.log('Generated Param:' + param);
+	console.log('Generated Group Param');
 	response.json(param);
 
 });
@@ -98,164 +98,84 @@ app.post('/cmpkstring', function(request, response){
 
 //addition function on homomorphically encrypted variables
 //this may need some work, different method of serialisation maybe?
-app.get('/addec', function(request, response){
-	var c1 = request.query['C1'];
-	var c2 = request.query['C2'];
-    var number = request.query['number']; //number of ciphertexts to add
-	//all the list of ciphertext objects to give to the function
-	var parsed = [];
+app.post('/add_ciphers', function(request, response){
+	console.log("\nEndpoint /add_ciphers called");
+    const C1s = request.body.ciphers.c1s;
+	const C2s = request.body.ciphers.c2s;
+	const CIPHER_COUNT = C1s.length;
 
+	// Will store a list of parsed ciphers from the C1s and C2s arrays passed in
+	var parsedCiphers = [];
 	var ctx = new CTX("BN254CX");
-	console.log('Addec:');
 
-    if(number == c1.length)
+    if(CIPHER_COUNT > 1)
     {
-        for (var i = 0; i < c1.length; i++) {
-            console.log(i + ".C1:   " + c1[i]);
-            var c1Bytes = Buffer.from(c1[i].split(','), 'hex');
+        console.log("Combining " + CIPHER_COUNT + " ciphers");
+
+        for (var i = 0; i < CIPHER_COUNT; i++) {
+
+            var c1Bytes = Buffer.from(C1s[i].split(','), 'hex');
             var newC1 = new ctx.ECP.fromBytes(c1Bytes);
+
+            var c2Bytes = Buffer.from(C2s[i].split(','), 'hex');
+            var newC2 = new ctx.ECP.fromBytes(c2Bytes);
             
-            var cipher =
-            {
-                C1:newC1,
-                C2:null
+            var cipher = {
+                C1 : newC1,
+                C2 : newC2
             };
-        parsed.push(cipher);
-        
+
+            parsedCiphers.push(cipher);
         }
 
-        for (var j = 0; j < c2.length; j++) {
-            console.log(j + ".C2:   " + c2[j]);
-            var c2Bytes = Buffer.from(c2[j].split(','), 'hex');
-            var newC2 = new ctx.ECP.fromBytes(c2Bytes);
-           
-            parsed[j].C2 = newC2;
-        }         
-    }
+    } else if(CIPHER_COUNT === 1) {
+        console.log("Combining only one cipher");
 
-    else if(number == 1)
-    {
-        console.log("only one cipher");    
-        var c1Bytes = Buffer.from(c1.split(','), 'hex');
+        var c1Bytes = Buffer.from(C1s[0].split(','), 'hex');
         var newC1 = new ctx.ECP.fromBytes(c1Bytes);
-        console.log("C1:   " + c1);
-        var c2Bytes = Buffer.from(c2.split(','), 'hex');
+
+
+        var c2Bytes = Buffer.from(C2s[0].split(','), 'hex');
         var newC2 = new ctx.ECP.fromBytes(c2Bytes);
-        console.log("C2:   " + c2);
 
         var cipher =
         {
-            C1:newC1,
-            C2:newC2
-        };
-        parsed.push(cipher);
-    }
-
-
-	response.json(add(parsed));
-});
-
-
-//tally partially decrypted ciphertexts
-app.get('/tally', function(request, response){
-    console.log("\nEndpoint /tally called");
-    var amount = request.query['number'];//number of decryptions taking in
-    var paramString = request.query['param'];//event group parameter in JSON
-    var partialsStrings = request.query['decs'];//array of partial decryption(s) in bytes
-    var ciphertextString = request.query['cipher'];//ciphertext being decrypted in JSON
-
-    //re-build parameters
-    var tempParams = JSON.parse(JSON.parse(paramString).crypto);
-    var ctx = new CTX("BN254CX"); //new context we can use
-    var n = new ctx.BIG();
-    var g1 = new ctx.ECP();
-    var g2 = new ctx.ECP2();
-
-    //copying the values 
-    n.copy(tempParams.n);
-    g1.copy(tempParams.g1);
-    g2.copy(tempParams.g2);
-
-    var params = {
-      n:n,
-      g1:g1,
-      g2:g2
-    };
-
-    //re-build partial decryptions
-    var partials = [];
-    if(amount == partialsStrings.length)
-    {
-        console.log(amount + " partial decryptions");
-        for(var i = 0; i < partialsStrings.length; i++)
-        {
-            var bytes = Buffer.from(partialsStrings[i].split(','), 'hex');
-
-            var dec = {
-                D:new ctx.ECP.fromBytes(bytes)
-            };
-
-            partials.push(dec);
-        }
-    }
-    else if(amount == 1)
-    {
-        console.log("\nOnly one partial decryption received\n");
-        console.log(JSON.parse(paramString).crypto + "\n");
-
-        var bytes = Buffer.from(partialsStrings.split(','), 'hex');
-        var dec = {
-            D : new ctx.ECP.fromBytes(bytes)
+            C1 : newC1,
+            C2 : newC2
         };
 
-        partials.push(dec);
+        parsedCiphers.push(cipher);
     }
 
-    //re-build combined ciphertext
-    var tempCipher = JSON.parse(ciphertextString);
+    // Combine the ciphers here
+    var combinedCipher = add(parsedCiphers);
 
-    var cipher = {
-        C1: new ctx.ECP(),
-        C2: new ctx.ECP()
+    // Get the byte string of the C1 and C2 part for transmission
+    var C1Bytes = [];
+    combinedCipher.C1.toBytes(C1Bytes);
+
+    var C2Bytes = [];
+    combinedCipher.C2.toBytes(C2Bytes);
+
+    var responseData = {
+        C1: C1Bytes.toString(),
+        C2: C2Bytes.toString()
     };
 
-    cipher.C1.copy(tempCipher.C1);
-    cipher.C2.copy(tempCipher.C2);
-
-    response.json(tally(params, partials, cipher))
-});
-
-app.post('/comb_sks', function(request, response){
-    console.log("\nEndpoint /comb_sks called");
-    const SKsAsStrings = request.body.SKs;
-
-    // Parse and combine the secret keys
-    var ctx = new CTX("BN254CX");
-    var parsedSKs = [];
-
-    for(var i = 0; i < SKsAsStrings.length; i++) {
-        var skBytes = SKsAsStrings[i].split(",");
-        parsedSKs.push(new ctx.BIG.fromBytes(skBytes));
-    }
-
-    console.log("Combining " + parsedSKs.length + " SKs...");
-    var SKBytes = [];
-    combine_sks(parsedSKs).SK.toBytes(SKBytes);
-
-    response.send(SKBytes.toString());
+	response.json(responseData);
 });
 
 app.post('/get_tally', function(request, response){
-    const COUNT = request.body.count;
+    console.log("\nEndpoint /get_tally called");
+
+    // Extract the data from the request
     const TEMP_PARAMS = JSON.parse(JSON.parse(request.body.param).crypto);
-    const C1s = request.body.ciphers.c1s;
-    const C2s = request.body.ciphers.c2s;
-    const SK = request.body.sk;
+    const BALLOT_CIPHER = request.body.ballot_cipher;
+    const PART_DECS = request.body.part_decs;
+    const VOTERS_COUNT = request.body.voters_count;
 
-    console.log("\nFrom /get_tally - C1 array length (num of voters for the opt): " + C1s.length);
-
-    //re-build parameters
-    var ctx = new CTX("BN254CX"); //new context we can use
+    // Re-build parameters
+    var ctx = new CTX("BN254CX");
     var n = new ctx.BIG();
     var g1 = new ctx.ECP();
     var g2 = new ctx.ECP2();
@@ -265,31 +185,39 @@ app.post('/get_tally', function(request, response){
     g2.copy(TEMP_PARAMS.g2);
 
     var params = {
-      n:n,
-      g1:g1,
-      g2:g2
+        n : n,
+        g1 : g1,
+        g2 : g2
     };
 
-    //rebuild our secret key
-    var skBytes = SK.split(",");
-    var sk = new ctx.BIG.fromBytes(skBytes);
+    // Initialise the ballot cipher
+    var c1Bytes = Buffer.from(BALLOT_CIPHER.C1.split(','), 'hex');
+    var newC1 = new ctx.ECP.fromBytes(c1Bytes);
 
-    var tally = 0;
+    var c2Bytes = Buffer.from(BALLOT_CIPHER.C2.split(','), 'hex');
+    var newC2 = new ctx.ECP.fromBytes(c2Bytes);
 
-    for(var i = 0; i < COUNT; i++) {
-        var c1Bytes = Buffer.from(C1s[i].split(','), 'hex');
-        var newC1 = new ctx.ECP.fromBytes(c1Bytes);
+    var cipher =
+    {
+        C1 : newC1,
+        C2 : newC2
+    };
 
-        var c2Bytes = Buffer.from(C2s[i].split(','), 'hex');
-        var newC2 = new ctx.ECP.fromBytes(c2Bytes);
+    // Initialise all of the partial decryptions
+    var partials = [];
+    for(var i = 0; i < PART_DECS.length; i++)
+    {
+        var bytes = Buffer.from(PART_DECS[i].split(','), 'hex');
 
-        var cipher = {C1: newC1, C2: newC2};
-        tally += decrypt(params, sk, cipher).M;
+        var dec = {
+            D : new ctx.ECP.fromBytes(bytes)
+        };
+
+        partials.push(dec);
     }
 
-    console.log("Tally: " + tally + "\n");
-
-    response.send("" + tally);
+    // Send the decrypted cipher value (vote tally for an option)
+    response.send("" + getCipherVal(params, partials, cipher, VOTERS_COUNT).M);
 });
 
 var server = app.listen(port, function(){
@@ -311,7 +239,7 @@ https://github.com/milagro-crypto/milagro-crypto-js
 
 
 //Group parameter generator: returns rng object and generators g1,g2 for G1,G2 as well as order
-gpGen = function(){
+gpGen = function() {
         //init, and base generators
         var ctx = new CTX("BN254CX");
 
@@ -348,7 +276,7 @@ gpGen = function(){
 
 
 //creates ElGamal public and secret key
-keyGen=function(params){        
+keyGen = function(params) {
         var ctx = new CTX("BN254CX");  
         //set rng
         var RAW = [];
@@ -376,7 +304,7 @@ keyGen=function(params){
 
 //combine multiple public key together
 //the input is an array of PKs
-combine_pks=function(PKs){
+combine_pks = function(PKs) {
         var ctx = new CTX("BN254CX");  
         var pk=new ctx.ECP();      
         //copy the first pk
@@ -393,7 +321,7 @@ combine_pks=function(PKs){
 
 // Written by Vincent de Almeida: Combines multiple secret keys together
 // The SKs in the SKs array should already have been initialised using 'new ctx.BIG.fromBytes()'
-combine_sks=function(SKs) {
+combine_sks = function(SKs) {
     // 'add' the rest of the sks to the first
     var sk = SKs[0];
 
@@ -407,7 +335,7 @@ combine_sks=function(SKs) {
 };
         
 //ElGamal encryption
-encrypt=function(params,PK, m){
+encrypt = function(params,PK, m) {
         var ctx = new CTX("BN254CX");  
         //set rand
         var RAW = [];
@@ -441,31 +369,30 @@ encrypt=function(params,PK, m){
 
 
 //add ciphertexts
-add=function(Ciphers){        
+add = function(Ciphers) {
         var ctx = new CTX("BN254CX");  
-        var s1=new ctx.ECP();
-        var s2=new ctx.ECP();
+        var s1 = new ctx.ECP();
+        var s2 = new ctx.ECP();
+
         //copy the first cipher
         s1.copy(Ciphers[0].C1);
         s2.copy(Ciphers[0].C2);
+
         //multiple the rest ciphertexts
-        for(i=1;i<Ciphers.length;i++){
+        for(var i = 1; i < Ciphers.length; i++){
             s1.add(Ciphers[i].C1);
-        }       
-        //no idea why I need two loops
-        for(j=1;j<Ciphers.length;j++){
-            s2.add(Ciphers[j].C2);
+            s2.add(Ciphers[i].C2);
         }
 
-        return{
-            C1:s1,
-            C2:s2
+        return {
+            C1 : s1,
+            C2 : s2
         }
 };
 
 
 //ElGamal decryption
-decrypt=function(params,SK, C){
+decrypt = function(params,SK, C, votersCount) {
         var ctx = new CTX("BN254CX");  
         var D=new ctx.ECP();
         D = ctx.PAIR.G1mul(C.C1,SK);
@@ -474,9 +401,9 @@ decrypt=function(params,SK, C){
         gM.copy(C.C2);        
         gM.sub(D);
 
-//search for message by brute force
+        // Search for value based on the number of voters
         var B;       
-        for (j = 0; j < 1000; j++) {
+        for (var j = 0; j <= votersCount; j++) {
             //use D as temp var
             B = new ctx.BIG(j);
             D = ctx.PAIR.G1mul(params.g1,B);
@@ -485,8 +412,7 @@ decrypt=function(params,SK, C){
                     M:j
                 }
 
-        };
- 
+        }
         
         return{
             M: "Error"
@@ -495,27 +421,28 @@ decrypt=function(params,SK, C){
 
 
 //ElGamal partial decryption
-partDec=function(SK, C){
+partDec = function(SK, C) {
         var ctx = new CTX("BN254CX");  
-        var D=new ctx.ECP();
+        var D = new ctx.ECP();
         D = ctx.PAIR.G1mul(C.C1,SK);
         
-        return{
+        return {
             D: D
         }
 };
 
 
 
-//Tally, combine partial decryption 
-//Ds is the array of partial decryptions; C is the ciphertext.
-tally=function(params,Ds, C){
-        var ctx = new CTX("BN254CX");  
-        var D=new ctx.ECP();
+// Combines partial decryptions to enable the decryption of a cipher text which will be an int val representing
+// a tally of votes for an option. Ds is the array of partial decryptions; C is the ciphertext.
+getCipherVal = function(params, Ds, C, votersCount) {
+        // Create a context and initialise the first decryption part
+        var ctx = new CTX("BN254CX");
+        var D = new ctx.ECP();
         D.copy(Ds[0].D);
 
-        //combine D
-        for(i=1;i<Ds.length;i++){
+        // Combine the decryptions (in Ds array) into a single decryption by adding them to D
+        for(var i = 1; i < Ds.length; i++){
             D.add(Ds[i].D);
         }        
 
@@ -524,9 +451,9 @@ tally=function(params,Ds, C){
         gM.copy(C.C2);        
         gM.sub(D);
 
-        //search for message by brute force
+        // Search for the value based on the number of voters
         var B;       
-        for (var j = 0; j < 1000; j++) {
+        for (var j = 0; j <= votersCount; j++) {
             //use D as temp var
             B = new ctx.BIG(j);
             D = ctx.PAIR.G1mul(params.g1,B);
@@ -537,7 +464,7 @@ tally=function(params,Ds, C){
 
         }
  
-        
+        // If the search failed
         return{
             M: "Error"
         }

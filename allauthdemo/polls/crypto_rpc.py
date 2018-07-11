@@ -3,11 +3,12 @@ import urllib2
 
 '''
 
-All functions in this file have been re-implemenented by Thomas Smith
+All functions in this file have been re-implemenented by Vincent de Almeida
 
-File then updated by Vincent de Almeida. Changes include:
+Changes include:
     -Update filename to 'crypto_rpc' to reflect the RPC nature of the methods
-    -Modified RPC calls that send data to POST requests to avoid large query URLs
+    -Modified RPC calls that send data to POST requests to avoid large query URLs (using a helper function)
+    -Added a new cipher combination and tally function
 
 '''
 
@@ -39,58 +40,24 @@ def combpk(pks):
     return send_post_req(url, data)
 
 
-def addec(amount, ciphers):
-    url = 'http://localhost:8080/addec'
-    querystring = '?number='+str(amount)
-    c1s = ciphers['c1s']
-    c2s = ciphers['c2s']
-    for i, value in enumerate(c1s):
-        querystring += "&C1="+str(c1s[i])
-        querystring += "&C2="+str(c2s[i])
+def add_ciphers(ciphers):
+    url = 'http://localhost:8080/add_ciphers'
 
-    print(url+querystring)
-    jsondict = json.load(urllib2.urlopen(url+querystring))
-    print(json.dumps(jsondict))
-    return json.dumps(jsondict)
-
-
-# Deprecated functionality and has been superseded by get_tally
-def tally(amount, group_param, decs, cipher):
-    url = 'http://localhost:8080/tally'
-    querystring = '?number='+str(amount)
-    querystring += '&param='+urllib2.quote(str(group_param))
-
-    for i, value in enumerate(decs):
-        querystring += "&decs="+str(value)
-
-    querystring += '&cipher=' + urllib2.quote(str(cipher))
-
-    jsondict = json.load(urllib2.urlopen(url+querystring))
-
-    return str(jsondict['M'])
-
-
-def combine_sks(sks):
-    url = 'http://localhost:8080/comb_sks'
-
-    # Construct POST data
     data = {}
-    data['SKs'] = sks
+    data['ciphers'] = ciphers
 
-    # Return the new combined SK
-    return send_post_req(url, data)
+    return json.loads(send_post_req(url, data))
 
 
-def get_tally(count, ciphers, sk, group_param):
+def get_tally(ballot_cipher, part_decs, group_param, voters_count):
     url = 'http://localhost:8080/get_tally'
 
     # Construct POST data
     data = {}
-    data['count'] = count
-    data['ciphers'] = ciphers
-    data['sk'] = sk
+    data['ballot_cipher'] = ballot_cipher
+    data['part_decs'] = part_decs
     data['param'] = group_param
+    data['voters_count'] = voters_count
 
-    # Return the tally of votes for the option
     return send_post_req(url, data)
 
