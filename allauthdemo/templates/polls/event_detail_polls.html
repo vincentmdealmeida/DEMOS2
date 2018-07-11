@@ -6,7 +6,7 @@
 {% block event_content %}
   {% if object.polls.all %}
     {% for poll in object.polls.all %}
-        <h3>Poll: {{ poll.question_text }} (<a href="{% url 'polls:edit-poll' event_id=event.id poll_num=forloop.counter %}">Edit</a>)</h3>
+        <h3>Poll: {{ poll.question_text }} (<a href="{% url 'polls:edit-poll' event_id=event.uuid poll_id=poll.uuid %}">Edit</a>)</h3>
         <br/>
         <h4>Poll Options:</h4>
         <ul class="list-group">
@@ -21,6 +21,6 @@
     <p>No polls are available for this Event.</p>
   {% endif %}
   {% if is_organiser %}
-    <a href="{% url 'polls:create-poll' event.id %}" class="btn btn-default" role="button">Add Poll</a>
+    <a href="{% url 'polls:create-poll' event.uuid %}" class="btn btn-default" role="button">Add Poll</a>
   {% endif %}
 {% endblock %}

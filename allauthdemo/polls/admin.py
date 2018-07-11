@@ -3,7 +3,7 @@ from django.contrib import admin
 # Register your models here.
 
 from allauthdemo.auth.models import DemoUser
-from .models import Event, PollOption, Poll, Organiser
+from .models import Event, PollOption, Poll
 
 """
 

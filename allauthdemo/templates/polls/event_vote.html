@@ -3,79 +3,85 @@
 {% load bootstrap3 %}
 
 {% block app_js_vars %}
-  var option_count = {{ object.options.count }};
+    var option_count = {{ object.options.count }};
+    var min_selections = {{ min_selection }};
+    var max_selections = {{ max_selection }};
 {% endblock %}
 
 {% block content %}
 
 <div class="container">
-  <input id="event-param" type="text" value="{{event.EID}}" hidden/>
-  <input id="comb_pk" type="text" value="{{event.public_key}}" hidden/>
+    {% if can_vote %}
+        <!-- Hidden fields -->
+        <input id="event-param" type="text" value="{{event.EID}}" hidden/>
+        <input id="comb_pk" type="text" value="{{event.public_key}}" hidden/>
 
-    <!-- TODO: Add warning not to share the URL-->
-    <h2>Event Voting Page for the Event '{{ object.event.title }}'</h2>
-    <div class="alert alert-warning" role="alert" style="margin-top: 1em;">
-          You are voting as: <strong>{{ voter_email }}</strong> - Ensure this is correct and don't share this URL!
-      </div>
-    <span><strong>Voting status:</strong>
-        {% if has_voted %}
-            Voted - Re-Submitting will Change your Vote
-        {% else %}
-            Not Voted
-        {% endif %}
-    </span>
-    <br/>
-    <span><strong>Number of polls for this event:</strong> {{ poll_count }}</span>
-    <br/>
-    <br/>
-    <span><strong>Instructions:</strong>
-        You will be shown each poll for this event one by one where you will need to make a selection for the current
-        poll before moving onto the next poll. <strong>For this specific poll</strong> you need to make a <strong>
-        minimum</strong> of {{ min_selection }} option selection(s) and a <strong>maximum</strong> of
-        {{ max_selection }}. Please make your choice below.
-    </span>
- <div class="panel panel-body">
-  {% if prev_index %}
-    <a href="{% url 'polls:event-vote' event_id=object.event.id poll_num=prev_index %}" class="btn" role="button">
-      <span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
-    </a>
-  {% endif %}
-  {% if next_index %}
-  <a href="{% url 'polls:event-vote' event_id=object.event.id poll_num=next_index %}" class="btn" role="button">
-    <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
-  </a>
-  {% endif %}
- </div>
- {% if object.options.all %}
-     <h3>Poll {{ poll_num }} of {{ poll_count }}: {{object.question_text}}</h3>
-   {% if can_vote %}
-     {% load crispy_forms_tags %}
-     <div class="panel panel-default">
-       <div class="panel-heading"><strong>Options</strong></div>
-       <div class="panel panel-body">
-         <select class="radio-inline select form-control" id="poll-options" name="options">
-            {% load custom_filters_tags %}
-            <option value="{{ -1|get_ballot_value:object.options.all.count }}">Please Select...</option>
-           {% for option in object.options.all %}
-             <option value="{{forloop.counter|get_ballot_value:object.options.all.count}}">{{ option.choice_text }}</option>
-           {% endfor %}
-         </select>
-         <hr/>
-         <button id="keygen-btn" onclick="demosEncrypt.encryptAndSubmit()" class="btn btn-primary">Submit</button>
-         <form id="cipher-form" method="post" action="" class="">
-             {% csrf_token %}
-         </form>
-       </div>
-     </div>
-   {% else %}
-     <div class="alert alert-warning" role="alert">
-       <p>You don't have permission to vote in this event.</p>
-     </div>
-   {% endif %}
- {% else %}
-   <p>No options are available.</p>
- {% endif %}
+        <!-- Event info and instructions -->
+        <h2>Event Voting Page for the Event '{{ object.event.title }}'</h2>
+        <hr/>
+        <div class="alert alert-warning" role="alert" style="margin-top: 1em;">
+            You are voting as: <strong>{{ voter_email }}</strong> - Ensure this is correct and don't share this URL!
+        </div>
+        <span><strong>Voting status:</strong>
+            {% if has_voted %}
+                Voted - Re-Submitting will Change your Vote
+            {% else %}
+                Not Voted
+            {% endif %}
+        </span>
+        <br/>
+        <span><strong>Number of polls for this event:</strong> {{ poll_count }}</span>
+        <br/>
+        <br/>
+        <span><strong>Instructions:</strong>
+            You will be shown each poll for this event one by one where you will need to make a selection for the current
+            poll before moving onto the next poll. <strong>For this specific poll</strong> you need to make a <strong>
+            minimum</strong> of {{ min_selection }} option selection(s) and a <strong>maximum</strong> of
+            {{ max_selection }}. <br/><br/>Please make your choice below.
+        </span>
+
+        <!-- Poll Voting Section -->
+        <h3>Poll {{ poll_num }} of {{ poll_count }}: {{object.question_text}}</h3>
+        <hr/>
+
+        {% load crispy_forms_tags %}
+         <div class="panel panel-default">
+           <div class="panel-heading"><strong>Options</strong></div>
+           <div class="panel panel-body">
+             <select class="radio-inline select form-control" id="poll-options" name="options">
+                {% load custom_filters_tags %}
+                <option value="{{ -1|get_ballot_value:object.options.all.count }}">Please Select...</option>
+               {% for option in object.options.all %}
+                 <option value="{{forloop.counter|get_ballot_value:object.options.all.count}}">{{ option.choice_text }}</option>
+               {% endfor %}
+             </select>
+             <hr/>
+             <button id="keygen-btn" onclick="demosEncrypt.encryptAndSubmit()" class="btn btn-primary">Submit</button>
+             <form id="cipher-form" method="post" action="" class="">
+                 {% csrf_token %}
+             </form>
+           </div>
+         </div>
+
+        <!-- Poll Navigation -->
+        <div class="panel panel-body">
+          {% if prev_uuid %}
+            <a href="{% url 'polls:event-vote' event_id=object.event.uuid poll_id=prev_uuid %}?key={{ a_key }}" class="btn btn-danger"
+               role="button">
+              <span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span> Previous Poll
+            </a>
+          {% endif %}
+          {% if next_uuid %}
+            <a href="{% url 'polls:event-vote' event_id=object.event.uuid poll_id=next_uuid %}?key={{ a_key }}" class="btn btn-primary"
+               role="button" style="float: right;">
+                Next Poll <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
+            </a>
+          {% endif %}
+        </div>
+    {% else %} <!-- for: { if can_vote %} -->
+        <div class="alert alert-warning" role="alert">
+            <p>{{ cant_vote_reason }}</p>
+        </div>
+    {% endif %}
 </div>
-<br>
-<br>
 {% endblock %}

@@ -11,7 +11,7 @@ from crispy_forms.layout import LayoutObject, Layout, TEMPLATE_PACK, Fieldset, B
 from crispy_forms.bootstrap import StrictButton, TabHolder, Tab, FormActions, PrependedText, PrependedAppendedText, Accordion, AccordionGroup
 from captcha.fields import ReCaptchaField
 from allauthdemo.auth.models import DemoUser
-from .models import Event, Poll, PollOption, Organiser
+from .models import Event, Poll, PollOption
 
 def is_valid_email(email):
     try:

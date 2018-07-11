@@ -1,7 +1,6 @@
 {% extends "bases/bootstrap-with-nav.html" %}
 {% load staticfiles %}
 {% load bootstrap3 %}
-{% comment %} is it safe really? {% endcomment %}
 {% block sk-file-name %}{{ event.title|safe }}{% endblock %}
 
 {% block content %}
@@ -11,21 +10,42 @@
     <hr/>
   <div class="panel panel-default">
       <div class="panel-heading"><strong>Submit your Secret Key as '{{ user_email }}'</strong></div>
-    <div class="panel panel-body">
-        <form id="sk-form" method="POST">
-            {% csrf_token %}
-            <input id="secret-key" name="secret-key" class="textinput textInput form-control" type="text"/>
-            <div class="alert alert-info" role="alert" style="margin-top: 0.75em;">
+      <div class="panel panel-body">
+          <input id="secret-key" name="secret-key" class="textinput textInput form-control" type="text" disabled/>
+          <div class="alert alert-info" role="alert" style="margin-top: 0.75em;">
               Your secret key will be used to decrypt the event and get a vote tally for every poll.
-            </div>
-            <label for="files_sk_upload" class="btn btn-primary">
-              <span class="glyphicon glyphicon-cloud-upload"></span>
+              It won't be sent to the server.
+          </div>
+          <label for="files_sk_upload" class="btn btn-primary">
+             <span class="glyphicon glyphicon-cloud-upload"></span>
               Upload Key
-            </label>
-            <input type="file" id="files_sk_upload" name="file" class="btn-info">
-            <input type="submit" value="Submit" class="btn btn-success"/>
-        </form>
-    </div>
+          </label>
+          <input type="file" id="files_sk_upload" name="file" class="btn-info">
+      </div>
+      <br/>
+      <div class="panel-heading"><strong>Ciphers</strong></div>
+      <div class="panel panel-body">
+          <form id="cipher-form" method="POST">
+              {% csrf_token %}
+              {% for opts_ciphers in poll_ciphers %}
+                  {% for cipher in opts_ciphers %}
+                      <input id="cipher"
+                             name="poll-{{ forloop.parentloop.counter0 }}-cipher-{{ forloop.counter0 }}"
+                             class="textinput textInput form-control"
+                             type="text"
+                             value="{ &quot;C1&quot;: &quot;{{ cipher.C1 }}&quot;, &quot;C2&quot;: &quot;{{ cipher.C2 }}&quot; }"
+                             />
+
+                      <br/>
+                  {% endfor %}
+                  <br/>
+              {% endfor %}
+              <button id="decrypt-btn"
+                      onclick="demosEncrypt.decryptSubmitCiphers()"
+                      class="btn btn-success">
+                      Decrypt & Submit</button>
+          </form>
+      </div>
   </div>
 </div>
 

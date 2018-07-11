@@ -56,7 +56,6 @@
 
 <script type="text/javascript">
 
-
   {% block app_js_vars %}
   {% endblock %}
 
@@ -73,8 +72,33 @@
 
   */
 
+  dropDownFragsNotZero = function(frags) {
+      var valid = false;
+
+      for(var i = 0; i < frags.length; i++) {
+          var frag = frags[i];
+
+          if(frag !== "0") {
+              valid = true;
+              break;
+          }
+      }
+
+      return valid;
+  };
+
   //new function
   demosEncrypt.encryptAndSubmit = function() {
+    // Drop down option selection validation
+    if(min_selections === 1 && max_selections === 1) {
+        var fragments = $('#poll-options').val().split(",");
+
+        if(!dropDownFragsNotZero(fragments)) {
+            alert("You have to select an option in order to vote.");
+            return;
+        }
+    } // TODO: Checkbox validation goes here
+
     // Disable the enc and submit button to prevent fn from being called twice
     $('#keygen-btn').prop("disabled", true);
 
@@ -147,9 +171,16 @@
     $('#cipher-form').submit();
   };
 
+  function getBytes(arr) {
+      for(var i = 0; i < arr.length; i++) {
+          arr[i] = parseInt(arr[i]);
+      }
+
+      return new Uint8Array(arr);
+  }
 
   //new function
-  demosEncrypt.decryptCipher = function() {
+  demosEncrypt.decryptSubmitCiphers = function() {
     var skString = $('#secret-key').val();
     if (!skString) {
       alert("Please enter your secret key");
@@ -158,28 +189,32 @@
       //rebuild our secret key
       var ctx = new CTX("BN254CX");
       var skBytes = skString.split(",");
-      var sk =new ctx.BIG.fromBytes(skBytes);
+      var sk = new ctx.BIG.fromBytes(skBytes);
 
       var inputs = $("form input[type=text]");
+
       inputs.each(function() { //for each ciphertext to decrypt
         var ciphertext = {
-          C1: new ctx.ECP(),
-          C2: new ctx.ECP()
-        }
+          C1: null,
+          C2: null
+        };
+
         var temp = JSON.parse($(this).val());
-        ciphertext.C1.copy(temp.C1);
-        ciphertext.C2.copy(temp.C2);
-        
-        var partial = partDec(sk, ciphertext);//returns an object containing an ECP()
+        var c1Bytes = getBytes(temp.C1.split(','));
+        ciphertext.C1 = new ctx.ECP.fromBytes(c1Bytes);
+
+        var c2Bytes = getBytes(temp.C2.split(','));
+        ciphertext.C2 = new ctx.ECP.fromBytes(c2Bytes);
+
+        // Perform partial decryption where the method returns an object containing an ECP()
+        var partial = partDec(sk, ciphertext);
         
         var bytes = [];
         partial.D.toBytes(bytes);
         $(this).val(bytes.toString());//submit in byte array form
-      })
-
-      $('input[type=submit]').prop("disabled", false);
+      });
     }
-  }
+  };
 
   //new function
   demosEncrypt.generateKeys = function() {

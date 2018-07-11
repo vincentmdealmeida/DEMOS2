@@ -19,7 +19,7 @@
     </div>
    {% if object_list %}
        <div class="form-group">
-           <table id="trustees-input-table" class="table table-hover marginTopEventList">
+           <table id="event-list-table" class="table table-hover marginTopEventList">
               <thead>
                 <tr>
                     <th class="text-center">Event</th>
@@ -33,14 +33,14 @@
               <tbody>
                     {% for event in object_list %}
                    <tr>
-                       <td class="text-center"><a href="{% url 'polls:view-event' event.id %}">{{ event.title }}</a></td>
+                       <td class="text-center"><a href="{% url 'polls:view-event' event.uuid %}">{{ event.title }}</a></td>
                        <td class="text-center">{{ event.duration }}</td>
                        <td class="text-center">{{ event.polls.count }}</td>
                        <td class="text-center">
-                           <a href="{% url 'polls:edit-event' event.id %}">
+                           <a href="{% url 'polls:edit-event' event.uuid %}">
                               <span class="btn btn-default glyphicon glyphicon-pencil"></span>
                            </a>
-                           <a href="{% url 'polls:del-event' event.id %}">
+                           <a href="{% url 'polls:del-event' event.uuid %}">
                               <span class="btn btn-default glyphicon glyphicon-trash"></span>
                            </a>
                        </td>
