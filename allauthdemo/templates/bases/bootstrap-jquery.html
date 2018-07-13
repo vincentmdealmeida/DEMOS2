@@ -19,6 +19,7 @@
 <script src="{% static 'js/papaparse.min.js' %}" type="text/javascript"></script>
 <script src="{% static 'js/create-event-poll.js' %}" type="text/javascript"></script>
 <script src="{% static 'js/decrypt_event.js' %}" type="text/javascript"></script>
+<script src="{% static 'js/event_vote.js' %}" type="text/javascript"></script>
 <script src="{% static 'js/encrypt.js' %}" type="text/javascript"></script>
 
 <script type="text/javascript" src="{% static 'js/core/rand.js' %}"></script>
@@ -63,113 +64,6 @@
   var demosEncrypt = {
 
   }
-
-  /*
-
-  Code written with "New function" comments have
-  been totally or mostly re-implemented by Thomas Smith
-
-
-  */
-
-  dropDownFragsNotZero = function(frags) {
-      var valid = false;
-
-      for(var i = 0; i < frags.length; i++) {
-          var frag = frags[i];
-
-          if(frag !== "0") {
-              valid = true;
-              break;
-          }
-      }
-
-      return valid;
-  };
-
-  //new function
-  demosEncrypt.encryptAndSubmit = function() {
-    // Drop down option selection validation
-    if(min_selections === 1 && max_selections === 1) {
-        var fragments = $('#poll-options').val().split(",");
-
-        if(!dropDownFragsNotZero(fragments)) {
-            alert("You have to select an option in order to vote.");
-            return;
-        }
-    } // TODO: Checkbox validation goes here
-
-    // Disable the enc and submit button to prevent fn from being called twice
-    $('#keygen-btn').prop("disabled", true);
-
-    // Elliptic curve cryptography params used for encryption of encrypted vote
-    // fragments
-    var ctx = new CTX("BN254CX");
-    var n = new ctx.BIG();
-    var g1 = new ctx.ECP();
-    var g2 = new ctx.ECP2();
-
-    var parameter = $('#event-param').val();
-    var tempParams = JSON.parse(JSON.parse(parameter).crypto);
-
-    //copying the values 
-    n.copy(tempParams.n);
-    g1.copy(tempParams.g1);
-    g2.copy(tempParams.g2);
-
-    var params = {
-      n:n,
-      g1:g1,
-      g2:g2
-    };
-
-    var tempPK = JSON.parse($('#comb_pk').val());
-    var pk = new ctx.ECP(0);
-    pk.copy(tempPK.PK);
-
-    // Obtain the user's selection (their vote) and encrypt the fragments of the binary encoding
-    const selection = $('#poll-options').val();
-    const selectionFragments = selection.split(',');
-
-    var cipherForm = document.getElementById("cipher-form");
-
-    for(var i = 0; i < selectionFragments.length; i++) {
-        // Encrypt this fragment for the selection
-        var cipher = encrypt(params, pk, parseInt(selectionFragments[i]));
-
-        // Store C1 and C2 from the cipher in 2 arrays
-        var c1Bytes = [];
-        cipher.C1.toBytes(c1Bytes);
-
-        var c2Bytes = [];
-        cipher.C2.toBytes(c2Bytes);
-
-        // Inject hidden input controls into the form that represents a single ballot
-        var c1Input = document.createElement("input");
-        c1Input.setAttribute("type", "hidden");
-        c1Input.setAttribute("name", "cipher_c1_frag_" + i);
-        c1Input.setAttribute("value", c1Bytes.toString());
-
-        var c2Input = document.createElement("input");
-        c2Input.setAttribute("type", "hidden");
-        c2Input.setAttribute("name", "cipher_c2_frag_" + i);
-        c2Input.setAttribute("value", c2Bytes.toString());
-
-        cipherForm.appendChild(c1Input);
-        cipherForm.appendChild(c2Input);
-    }
-
-    // Inject a final input control into the form which specifies the number of fragments
-    // That make up an encrypted vote
-    var fragCountInput = document.createElement("input");
-    fragCountInput.setAttribute("type", "hidden");
-    fragCountInput.setAttribute("name", "vote_frag_count");
-    fragCountInput.setAttribute("value", "" + selectionFragments.length);
-    cipherForm.appendChild(fragCountInput);
-
-    // Submit the encrypted vote to the server
-    $('#cipher-form').submit();
-  };
 
   function getBytes(arr) {
       for(var i = 0; i < arr.length; i++) {

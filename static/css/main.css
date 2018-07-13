@@ -179,3 +179,8 @@ input[type="file"] {
 .overviewPadding {
   padding-left: 16px;
 }
+
+/* Voting page */
+.big-checkbox {
+  width: 30px; height: 30px;
+}

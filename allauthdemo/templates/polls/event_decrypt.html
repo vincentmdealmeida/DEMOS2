@@ -4,6 +4,13 @@
 {% block sk-file-name %}{{ event.title|safe }}{% endblock %}
 
 {% block content %}
+<script type="text/javascript">
+    // This is what we expect the SK supplied by the trustee to generate
+    var trustee_pk = "{{ trustee_pk }}";
+
+    var tempParams = "{{ event.EID_crypto|escapejs }}";
+    tempParams = JSON.parse(tempParams);
+</script>
 
 <div class="container">
   <h2>Trustee Event Decryption for Event '{{ event.title }}'</h2>
@@ -47,6 +54,26 @@
           </form>
       </div>
   </div>
+</div>
+
+<!-- Information Dialog called upon request -->
+<div class="modal fade" id="modalDialog" role="dialog">
+    <div class="modal-dialog">
+
+      <!-- Dialog content-->
+      <div class="modal-content">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+            <h4 class="modal-title" style="text-align: center"><strong>Thank You</strong></h4>
+        </div>
+        <div class="modal-body">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+
+    </div>
 </div>
 
 {% endblock %}

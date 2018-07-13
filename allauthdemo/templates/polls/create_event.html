@@ -12,7 +12,7 @@
         {% if not forloop.first %},{% endif %}
         {
             title: "{{ event.title }}",
-            slug: "{{ event.EID }}"
+            slug: "{{ event.EID_hr }}"
         }
     {% endfor %}
     ];
@@ -34,6 +34,7 @@
 <!-- The DEMOS1 repository can be found at: https://github.com/mlevogiannis/demos-voting -->
 <!-- TODO: look into i18n translations as this was a feature implemented in DEMOS1 to enable automatic translations -->
 <div class="container">
+
     <div class="page-header">
         <h2>Create New Event with Polls</h2>
     </div>
