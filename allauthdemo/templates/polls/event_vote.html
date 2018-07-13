@@ -3,9 +3,10 @@
 {% load bootstrap3 %}
 
 {% block app_js_vars %}
-    var option_count = {{ object.options.count }};
-    var min_selections = {{ min_selection }};
-    var max_selections = {{ max_selection }};
+    const OPTION_COUNT = {{ object.options.count }};
+    const MIN_SELECTIONS = {{ min_selection }};
+    const MAX_SELECTIONS = {{ max_selection }};
+    var selectedCount = 0;
 {% endblock %}
 
 {% block content %}
@@ -13,6 +14,7 @@
 <div class="container">
     {% if can_vote %}
         <!-- Hidden fields -->
+        {% csrf_token %}
         <input id="event-param" type="text" value="{{event.EID}}" hidden/>
         <input id="comb_pk" type="text" value="{{event.public_key}}" hidden/>
 
@@ -37,7 +39,15 @@
             You will be shown each poll for this event one by one where you will need to make a selection for the current
             poll before moving onto the next poll. <strong>For this specific poll</strong> you need to make a <strong>
             minimum</strong> of {{ min_selection }} option selection(s) and a <strong>maximum</strong> of
-            {{ max_selection }}. <br/><br/>Please make your choice below.
+            {{ max_selection }}.
+
+            {% if min_selection == 0 %}
+                <br/><br/>Due to the fact that you are permitted to select nothing, simply hitting submit will submit a
+                'blank' vote so please be aware of this. You can always re-visit this page before the event ends if you
+                change your mind.
+            {% endif %}
+
+            <br/><br/>Please make your choice below.
         </span>
 
         <!-- Poll Voting Section -->
@@ -48,18 +58,30 @@
          <div class="panel panel-default">
            <div class="panel-heading"><strong>Options</strong></div>
            <div class="panel panel-body">
-             <select class="radio-inline select form-control" id="poll-options" name="options">
+             {% comment %}<select class="radio-inline select form-control" id="poll-options" name="options">
                 {% load custom_filters_tags %}
                 <option value="{{ -1|get_ballot_value:object.options.all.count }}">Please Select...</option>
                {% for option in object.options.all %}
                  <option value="{{forloop.counter|get_ballot_value:object.options.all.count}}">{{ option.choice_text }}</option>
                {% endfor %}
-             </select>
+             </select>{% endcomment %}
+             {% for option in object.options.all %}
+                 <div class="checkbox">
+                    {% load custom_filters_tags %}
+                    <label><input type="checkbox" value="{{forloop.counter|get_ballot_value:object.options.all.count}}">{{ option.choice_text }}</label>
+                 </div>
+             {% endfor %}
              <hr/>
-             <button id="keygen-btn" onclick="demosEncrypt.encryptAndSubmit()" class="btn btn-primary">Submit</button>
-             <form id="cipher-form" method="post" action="" class="">
-                 {% csrf_token %}
-             </form>
+            <div id="ballot-gen-progress-area">
+                <button id="gen-ballots-btn" class="btn btn-primary">Generate Ballots</button>
+                <!-- Progress bar which is used during encryption -->
+                <h4 id="progress-bar-description" class="hidden">Generating Ballots...</h4>
+                <div id="progress-bar-container" class="progress hidden">
+                  <div id="progress-bar" class="progress-bar" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" style="width: 0%;">
+                    <span class="sr-only">70% Complete</span>
+                  </div>
+                </div>
+            </div>
            </div>
          </div>
 
@@ -78,6 +100,27 @@
             </a>
           {% endif %}
         </div>
+
+        <!-- Information Dialog called upon request -->
+        <div class="modal fade" id="modalDialog" role="dialog">
+            <div class="modal-dialog">
+
+              <!-- Dialog content-->
+              <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title" style="text-align: center"><strong>Ballot</strong></h4>
+                </div>
+                <div class="modal-body">
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                </div>
+              </div>
+
+            </div>
+        </div>
+
     {% else %} <!-- for: { if can_vote %} -->
         <div class="alert alert-warning" role="alert">
             <p>{{ cant_vote_reason }}</p>

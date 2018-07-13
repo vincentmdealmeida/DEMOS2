@@ -51,7 +51,7 @@ class Event(models.Model):
         try:
             EID_json = json.loads(self.EID)
             EID_crypto_str = EID_json['crypto']
-            return json.loads(EID_crypto_str)
+            return json.dumps(json.loads(EID_crypto_str))
         except ValueError:
             return "None - Event not Initialised"
 
@@ -213,8 +213,13 @@ class EncryptedVote(models.Model):
     ballot = models.ForeignKey(Ballot, on_delete=models.CASCADE, related_name="encrypted_vote")
 
 
+class CombinedEncryptedVote(models.Model):
+    ballot = models.ForeignKey(Ballot, on_delete=models.CASCADE, related_name="comb_encrypted_vote")
+
+
 class VoteFragment(models.Model):
-    encrypted_vote = models.ForeignKey(EncryptedVote, on_delete=models.CASCADE, related_name="fragment")
+    encrypted_vote = models.ForeignKey(EncryptedVote, on_delete=models.CASCADE, related_name="fragment", null=True)
+    comb_encrypted_vote = models.ForeignKey(CombinedEncryptedVote, on_delete=models.CASCADE, related_name="fragment", null=True)
     cipher_text_c1 = models.CharField(max_length=4096)
     cipher_text_c2 = models.CharField(max_length=4096)
 

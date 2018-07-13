@@ -7,7 +7,7 @@ from celery import task
 
 from django.conf import settings
 
-from allauthdemo.polls.models import AccessKey, Ballot, CombinedBallot, PartialBallotDecryption
+from allauthdemo.polls.models import AccessKey, Ballot, CombinedBallot, PartialBallotDecryption, EncryptedVote, CombinedEncryptedVote, VoteFragment
 
 from .crypto_rpc import param, combpk, add_ciphers, get_tally
 
@@ -58,6 +58,7 @@ def email_trustees_dec(event):
 
         trustee.send_email(email_subject, email_body)
 
+
 def get_email_sign_off():
     sign_off = str("")
     sign_off += "\n\nPlease note: This email address is not monitored so please don't reply to this email.\n\n"
@@ -65,6 +66,7 @@ def get_email_sign_off():
     sign_off += "DEMOS 2 Admin - Lancaster University"
 
     return sign_off
+
 
 '''
     Combines all of the voter ballots for a poll option into a single 'CombinedBallot'
@@ -83,7 +85,7 @@ def combine_ballots(polls):
             frags_c2 = list()
 
             for ballot in ballots:
-                enc_vote = ballot.encrypted_vote.get()
+                enc_vote = ballot.comb_encrypted_vote.get()
 
                 if enc_vote is not None:
                     fragments = enc_vote.fragment.all()
@@ -101,6 +103,34 @@ def combine_ballots(polls):
                                           option=option,
                                           cipher_text_c1=combined_cipher['C1'],
                                           cipher_text_c2=combined_cipher['C2'])
+
+@task()
+def combine_encrypted_votes(voter, poll):
+    poll_options_count = poll.options.all().count()
+    ballot = Ballot.objects.get_or_create(voter=voter, poll=poll)[0]
+    e_votes = EncryptedVote.objects.filter(ballot=ballot)
+
+    CombinedEncryptedVote.objects.filter(ballot=ballot).delete()
+    comb_e_vote = CombinedEncryptedVote.objects.create(ballot=ballot)
+
+    for i in range(poll_options_count):
+        frags_c1 = list()
+        frags_c2 = list()
+
+        for e_vote in e_votes:
+            fragments = e_vote.fragment.all()
+            frags_c1.append(fragments[i].cipher_text_c1)
+            frags_c2.append(fragments[i].cipher_text_c2)
+
+        ciphers = {
+            'c1s': frags_c1,
+            'c2s': frags_c2
+        }
+
+        combined_cipher = add_ciphers(ciphers)
+        VoteFragment.objects.create(comb_encrypted_vote=comb_e_vote,
+                                    cipher_text_c1=combined_cipher['C1'],
+                                    cipher_text_c2=combined_cipher['C2'])
 
 @task()
 def create_ballots(event):

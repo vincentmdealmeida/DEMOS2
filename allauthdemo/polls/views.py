@@ -11,11 +11,11 @@ from django.views import generic
 from django.conf import settings
 
 from .forms import PollForm, OptionFormset, VoteForm, EventSetupForm, EventEditForm
-from .models import Event, Poll, Ballot, EncryptedVote, TrusteeKey, PartialBallotDecryption, CombinedBallot
+from .models import Event, Poll, Ballot, EncryptedVote, TrusteeKey, PartialBallotDecryption, CombinedBallot, VoteFragment
 from allauthdemo.auth.models import DemoUser
 
 from .tasks import email_trustees_prep, update_EID, generate_combpk, event_ended, create_ballots
-from .tasks import create_ballots_for_poll, email_voters_vote_url, combine_decryptions_and_tally
+from .tasks import create_ballots_for_poll, email_voters_vote_url, combine_decryptions_and_tally, combine_encrypted_votes
 
 from .utils.EventModelAdaptor import EventModelAdaptor
 
@@ -153,39 +153,35 @@ def event_vote(request, event_id, poll_id):
         cant_vote_reason = "The event either isn't ready for voting or it has expired and therefore you cannot vote."
 
     if request.method == "POST":
-        ballot = Ballot.objects.get_or_create(voter=email_key[0].user, poll=poll)[0]
+        data = json.loads(request.POST.lists()[0][0])
+        ballot_json = data['ballot']
+        encrypted_votes_json = ballot_json['encryptedVotes']
 
-        # Will store the fragments of the encoding scheme that define the vote
-        encrypted_vote = EncryptedVote.objects.get_or_create(ballot=ballot)[0]
+        # Before storing the encrypted votes, we need the voter's ballot
+        ballot, created = Ballot.objects.get_or_create(voter=email_key[0].user, poll=poll)
+        EncryptedVote.objects.filter(ballot=ballot).delete()
 
-        # Clear any existing fragments - a voter changing their vote
-        encrypted_vote.fragment.all().delete()
+        for e_vote in encrypted_votes_json:
+            # Will store the fragments of the encoding scheme that define the vote
+            encrypted_vote = EncryptedVote.objects.create(ballot=ballot)
+            fragments_json = e_vote['fragments']
 
-        # Add in the new ciphers
-        fragment_count = int(request.POST['vote_frag_count'])
-        for i in range(fragment_count):
-            i_str = str(i)
-
-            cipher_c1 = request.POST['cipher_c1_frag_' + i_str]
-            cipher_c2 = request.POST['cipher_c2_frag_' + i_str]
-
-            encrypted_vote.fragment.create(encrypted_vote=encrypted_vote,
-                                           cipher_text_c1=cipher_c1,
-                                           cipher_text_c2=cipher_c2)
+            for fragment in fragments_json:
+                VoteFragment.objects.create(encrypted_vote=encrypted_vote,
+                                            cipher_text_c1=fragment['C1'],
+                                            cipher_text_c2=fragment['C2'])
 
         ballot.cast = True
         ballot.save()
+
+        combine_encrypted_votes.delay(email_key[0].user, poll)
 
         if next_poll_uuid:
             return HttpResponseRedirect(reverse('polls:event-vote', kwargs={'event_id': event.uuid,
                                                                             'poll_id': next_poll_uuid})
                                         + "?key=" + email_key_str)
-        else:
-            # The user has finished voting in the event
-            success_msg = 'You have successfully cast your vote(s)!'
-            messages.add_message(request, messages.SUCCESS, success_msg)
 
-            return HttpResponseRedirect(reverse("user_home"))
+        return HttpResponse('Voted Successfully!')
 
     return render(request, "polls/event_vote.html",
         {
@@ -273,16 +269,20 @@ def event_trustee_decrypt(request, event_id):
 
     if access_key:
         email_key = event.keys.filter(key=access_key)
+        trustee = email_key[0].user
 
-        if email_key.exists() and event.users_trustees.filter(email=email_key[0].user.email).exists():
+        if email_key.exists() and event.users_trustees.filter(email=trustee.email).exists():
 
-            if PartialBallotDecryption.objects.filter(event=event, user=email_key[0].user).count() == event.total_num_opts():
+            if PartialBallotDecryption.objects.filter(event=event, user=trustee).count() == event.total_num_opts():
 
                 warning_msg = 'You have already provided your decryption key for this event - Thank You'
                 messages.add_message(request, messages.WARNING, warning_msg)
 
                 return HttpResponseRedirect(reverse("user_home"))
             elif request.method == "GET":
+                # Get the Trustee's original PK - used in the template for SK validation
+                trustee_pk = TrusteeKey.objects.get(event=event, user=trustee).key
+
                 # Gen a list of ciphers from the combined ballots for every opt of every poll
                 polls = event.polls.all()
                 poll_ciphers = []
@@ -305,7 +305,8 @@ def event_trustee_decrypt(request, event_id):
                               "polls/event_decrypt.html",
                               {
                                   "event": event,
-                                  "user_email": email_key[0].user.email,
+                                  "user_email": trustee.email,
+                                  "trustee_pk": trustee_pk,
                                   "poll_ciphers": poll_ciphers
                               })
 
@@ -318,7 +319,7 @@ def event_trustee_decrypt(request, event_id):
                     options_count = len(options)
 
                     for j in range(options_count):
-                        input_name = ""
+                        input_name = str("")
                         input_name = "poll-" + str(i) + "-cipher-" + str(j)
 
                         part_dec = request.POST[input_name]
@@ -326,7 +327,7 @@ def event_trustee_decrypt(request, event_id):
                         PartialBallotDecryption.objects.create(event=event,
                                                                poll=polls[i],
                                                                option=options[j],
-                                                               user=email_key[0].user,
+                                                               user=trustee,
                                                                text=part_dec)
 
                 if event.all_part_decs_received():
