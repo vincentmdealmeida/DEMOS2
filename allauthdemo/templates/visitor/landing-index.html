@@ -8,7 +8,7 @@
     <h1>DEMOS 2</h1>
     <img src='{% static "img/demos2-sm.png" %}'>
     <p class="lead">
-      Read more on the <a href="{% url 'landing_about' %}">About Page.</a>
+      {% comment %}Read more on the <a href="{% url 'landing_about' %}">About Page.</a>{% endcomment %}<!-- Currently this is not a production-ready page -->
     </p>
     <p>
       <a class="btn btn-lg btn-success " href="{% url 'account_signup' %}" role="button">Join</a>
