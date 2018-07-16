@@ -1,9 +1,6 @@
 from django import forms
-from django.core.validators import MinLengthValidator
 
 from .models import DemoUser
-
-from captcha.fields import ReCaptchaField
 
 
 class DemoUserEditForm(forms.ModelForm):
@@ -40,7 +37,6 @@ class NameForm(forms.Form):
 
 
 class RegistrationForm(forms.Form):
-    captcha = ReCaptchaField()
 
     def signup(self, request, user):
         user.save()

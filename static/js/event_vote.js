@@ -37,26 +37,15 @@ $("label input[type=checkbox]").change(function() {
     updateCheckboxInteractivity();
 });
 
-function dropDownFragsNotZero(frags) {
-      var valid = false;
-
-      for(var i = 0; i < frags.length; i++) {
-          var frag = frags[i];
-
-          if(frag !== "0") {
-              valid = true;
-              break;
-          }
-      }
-
-      return valid;
-}
-
 function isVotingInputValid() {
     var valid = true;
 
     // First establish if the user's selection count is valid
     if(!(selectedCount >= MIN_SELECTIONS && selectedCount <= MAX_SELECTIONS)) {
+        valid = false;
+    }
+
+    if(selectedCount < MAX_SELECTIONS) {
         valid = false;
     }
 
@@ -203,6 +192,10 @@ function voteSuccessfullyReceived() {
 
     title.text('Vote Successfully Received');
     var bodyText = "Thank you for voting!";
+
+    if(POLL_NUM !== POLL_COUNT) {
+        bodyText += " You can vote on the next poll by closing down this dialog and clicking 'Next Poll'.";
+    }
 
     var p = document.createElement("p");
     p.innerHTML = bodyText;

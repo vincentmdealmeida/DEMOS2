@@ -1,15 +1,11 @@
-from functools import partial
 from django import forms
-from django.core.validators import MinLengthValidator
 from django.template.loader import render_to_string
 from django.template import Context
 from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator
-from django.core.mail import send_mail
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import LayoutObject, Layout, TEMPLATE_PACK, Fieldset, ButtonHolder, Submit, Div, Field, HTML
-from crispy_forms.bootstrap import StrictButton, TabHolder, Tab, FormActions, PrependedText, PrependedAppendedText, Accordion, AccordionGroup
-from captcha.fields import ReCaptchaField
+from crispy_forms.layout import LayoutObject, Layout, TEMPLATE_PACK, Div, Field, HTML
+from crispy_forms.bootstrap import PrependedText, PrependedAppendedText, Accordion, AccordionGroup
 from allauthdemo.auth.models import DemoUser
 from .models import Event, Poll, PollOption
 
@@ -21,12 +17,12 @@ def is_valid_email(email):
     except ValidationError:
         return False
 
+# This form has been deprecated
 class EventForm(forms.ModelForm):
-    #trustees = forms.CharField(label="Trustee list", widget=forms.Textarea(attrs={'width':"100%", 'cols' : "80", 'rows': "20", }))
+
     voters = forms.CharField(label="Voters", required=False, widget=forms.Textarea(attrs={'width':"100%", 'cols' : "80", 'rows': "20", }))
-    #self.voters.widget=forms.Textarea(attrs={'width':"100%", 'cols' : "80", 'rows': "20", })
     votersTextFile = forms.FileField(required=False)
-    captcha = ReCaptchaField()
+
     def __init__(self, *args, **kwargs):
         self.helper = FormHelper()
         self.helper.form_tag = False
@@ -42,8 +38,7 @@ class EventForm(forms.ModelForm):
                     Div(
                         PrependedAppendedText('end_time', 'Ends', '<span class="glyphicon glyphicon-calendar"></span>', placeholder="dd/mm/yyyy hh:mm"),
                             css_class="input-group date col-sm-6"
-                    ),
-                    Field('captcha')
+                    )
                 ),
                 AccordionGroup("Organisers",
                     HTML("<p>Event creators are automatically made an Organiser. Click and drag the tabs to reorder. Blank fields will be ignored.</p>"),
@@ -70,17 +65,16 @@ class EventForm(forms.ModelForm):
 
     class Meta:
         model = Event
-        fields = ('title', 'start_time', 'end_time', 'captcha') # TWEAK!!!
+        fields = ('title', 'start_time', 'end_time')
         widgets = {
             'voters': forms.Textarea(attrs={'cols': 80, 'rows': 20})
         }
 
+
+# This form has been deprecated
 class EventEditForm(forms.ModelForm):
-    #trustees = forms.CharField(label="Trustee list", widget=forms.Textarea(attrs={'width':"100%", 'cols' : "80", 'rows': "20", }))
     voters = forms.CharField(label="Voters", required=False, widget=forms.Textarea(attrs={'width':"100%", 'cols' : "80", 'rows': "20", }))
-    #self.voters.widget=forms.Textarea(attrs={'width':"100%", 'cols' : "80", 'rows': "20", })
     votersTextFile = forms.FileField(required=False)
-    captcha = ReCaptchaField()
     def __init__(self, *args, **kwargs):
         self.helper = FormHelper()
         self.helper.form_tag = False
@@ -96,8 +90,7 @@ class EventEditForm(forms.ModelForm):
                     Div(
                         PrependedAppendedText('end_time', 'Ends', '<span class="glyphicon glyphicon-calendar"></span>', placeholder="dd/mm/yyyy hh:mm"),
                             css_class="input-group date col-sm-6"
-                    ),
-                    Field('captcha')
+                    )
                 ),
                 AccordionGroup('Voters',
                     'voters',
@@ -110,7 +103,7 @@ class EventEditForm(forms.ModelForm):
 
     class Meta:
         model = Event
-        fields = ('title', 'start_time', 'end_time', 'captcha') # TWEAK!!!
+        fields = ('title', 'start_time', 'end_time')
         widgets = {
             'voters': forms.Textarea(attrs={'cols': 80, 'rows': 20})
         }
@@ -338,46 +331,3 @@ DecryptionFormset = forms.formset_factory(form=DecryptionForm, extra=0, min_num=
 
 OptionFormset = forms.inlineformset_factory(Poll, PollOption, form=OptionForm, min_num=2, max_num=20, validate_min=True, extra=0, fields=('choice_text',), can_delete=True)
 QuestionFormset = forms.inlineformset_factory(Event, Poll, form=PollForm, extra=0, min_num=2, validate_min=True, max_num=20, can_delete=True)
-
-"""
-PartialQuestionFormSet = partial(forms.formset_factory, PollQuestionForm, extra=2,
-  validate_min=True, validate_max=True, min_num=1, max_num=10)
-
-
-OptionFormset = forms.inlineformset_factory(PollQuestion, QuestionChoice, extra=3, fields=('choice_text',))
-
-QuestionFormset = forms.inlineformset_factory(Poll, PollQuestion,
-                                formset=BasePollQuestionFormset, extra=2, fields=('question_text',))
-
-
-TenantFormset = forms.inlineformset_factory(Building, Tenant, extra=1, fields=('name',))
-BuildingFormset = forms.inlineformset_factory(Block, Building,
-                                formset=BaseBuildingFormset, extra=1, fields=('address',))
-    AccordionGroup('Poll Questions',
-        Formset("question_formset",
-            "polls/create_question.html"
-        )
-    ),
-"""
-"""
-
-class PollQuestionForm(forms.ModelForm):
-    question_text = forms.CharField(
-        label = "Poll Title",
-        max_length = 80,
-        required = True,
-    )
-    def __init__(self, *args, **kwargs):
-        self.helper = FormHelper()
-        self.helper.form_tag = False
-        self.helper.layout = Layout(
-            TabHolder(
-                Tab('question_text')
-            ),
-        )
-        super(PollQuestionForm, self).__init__(*args, **kwargs)
-
-    class Meta:
-        model = PollQuestion
-        fields = ('question_text',)
-"""

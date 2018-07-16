@@ -16,8 +16,8 @@
         </div>
         <div class="navbar-collapse collapse">
           <ul class="nav navbar-nav navbar-right">
-            <li><a href="{% url 'landing_index' %}">Welcome</a></li>
-            <li><a href="{% url 'landing_about' %}">About</a></li>
+            <li><a href="{% url 'landing_index' %}">Home</a></li>
+            {% comment %}<li><a href="{% url 'landing_about' %}">About</a></li>{% endcomment %} <!-- Currently this is not a production-ready page -->
             <li><a href="{% url 'polls:index' %}">Events</a></li>
             {% if user.is_authenticated %}
               <li class="dropdown">
