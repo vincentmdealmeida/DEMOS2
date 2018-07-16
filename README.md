@@ -47,7 +47,7 @@ npm install
 
 Once the dependencies have been installed, you can then run the node server as per the below instructions.
 
-## InstructionsRunning
+## Instructions
 
 ### Step 1: Running the Python app and creating a new user account
 
