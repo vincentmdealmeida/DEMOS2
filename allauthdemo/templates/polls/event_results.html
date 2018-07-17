@@ -1,0 +1,28 @@
+{% extends "polls/event_detail_base.html" %}
+{% load staticfiles %}
+{% load bootstrap3 %}
+
+{% block event_nav_results %}active{% endblock %}
+{% block event_content %}
+    {% for poll_result in event_results %}
+        <div class="form-group">
+            <h3 class="marginTopResultTable">{{ poll_result.name }}</h3>
+            <table id="results-table-{{ forloop.counter }}" class="table table-hover">
+              <thead>
+                <tr>
+                    <th class="resultsCol text-center">Option</th>
+                    <th class="resultsCol text-center">Votes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for option in poll_result.options %}
+                   <tr>
+                       <td class="resultsCol text-center">{{ option.option }}</td>
+                       <td class="resultsCol text-center">{{ option.votes }}</td>
+                   </tr>
+                {% endfor %}
+              </tbody>
+           </table>
+       </div>
+    {% endfor %}
+{% endblock %}

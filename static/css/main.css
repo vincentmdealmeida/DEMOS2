@@ -180,6 +180,14 @@ input[type="file"] {
   padding-left: 16px;
 }
 
+.resultsCol {
+  width: 50%
+}
+
+.marginTopResultTable {
+  margin-top: 1.25em;
+}
+
 /* Voting page */
 .big-checkbox {
   width: 30px !important; height: 30px;
