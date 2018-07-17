@@ -44,17 +44,32 @@
     <br/>
     <ul class="nav nav-tabs">
         <li class="{% block event_nav_details %}{% endblock %}">
-          <a href="{% url 'polls:view-event' event.uuid %}"><strong>Summary</strong></a>
+          <a href="{% url 'polls:view-event' event.uuid %}">
+              <span class="glyphicon glyphicon-dashboard"></span> <strong>Summary</strong>
+          </a>
         </li>
         <li class="{% block event_nav_polls %}{% endblock %}">
-          <a href="{% url 'polls:event-polls' event.uuid %}"><strong>Polls ({{ object.polls.count }})</strong></a>
+          <a href="{% url 'polls:event-polls' event.uuid %}">
+              <span class="glyphicon glyphicon-list-alt"></span> <strong>Polls ({{ object.polls.count }})</strong>
+          </a>
         </li>
         <li class="{% block event_nav_organisers %}{% endblock %}">
-          <a href="{% url 'polls:event-entities' event.uuid %}"><strong>Entities</strong></a>
+          <a href="{% url 'polls:event-entities' event.uuid %}">
+              <span class="glyphicon glyphicon-user"></span> <strong>Entities</strong>
+          </a>
         </li>
+        {% if decrypted == True and object.ended == True %}
+            <li class="{% block event_nav_results %}{% endblock %}">
+              <a href="{% url 'polls:event-results' event.uuid %}">
+                  <span class="glyphicon glyphicon-stats"></span> <strong>Results</strong>
+              </a>
+            </li>
+        {% endif %}
         {% if is_organiser %}
           <li class="{% block event_nav_launch %}{% endblock %}">
-            <a href="{% url 'polls:event-advanced' event.uuid %}"><strong>Advanced</strong></a>
+            <a href="{% url 'polls:event-advanced' event.uuid %}">
+                <span class="glyphicon glyphicon-info-sign"></span> <strong>Advanced</strong>
+            </a>
           </li>
         {% endif %}
     </ul>
