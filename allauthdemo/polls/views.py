@@ -334,7 +334,7 @@ def event_trustee_decrypt(request, event_id):
                     # TODO: Combine partial decryptions and gen results
                     combine_decryptions_and_tally.delay(event)
 
-                messages.add_message(request, messages.SUCCESS, 'Your secret key has been successfully submitted')
+                messages.add_message(request, messages.SUCCESS, 'Your partial decryptions have been successfully submitted')
                 return HttpResponseRedirect(reverse("user_home"))
 
     # Without an access key, the client does not have permission to access this page
