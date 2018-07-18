@@ -180,7 +180,32 @@ input[type="file"] {
   padding-left: 16px;
 }
 
+.resultsCol {
+  width: 50%
+}
+
+.marginTopResultTable {
+  margin-top: 1.25em;
+}
+
 /* Voting page */
 .big-checkbox {
-  width: 30px; height: 30px;
+  width: 30px !important; height: 30px;
+}
+
+.btn-sq {
+  width: 125px !important;
+  height: 125px !important;
+  font-size: 16px;
+  line-height: 115px;
+  text-align: center;
+}
+
+.choice {
+  margin-left: 2em;
+}
+
+.choice-group {
+  width: 54%;
+  margin: 0 auto;
 }

@@ -38,6 +38,21 @@ class EventDetailView(generic.DetailView):
         context['is_organiser'] = (not self.request.user.is_anonymous()) and (self.object.users_organisers.filter(email=self.request.user.email).exists())
         context['decrypted'] = self.object.status() == "Decrypted"
 
+        # Get the results for all polls
+        polls = self.object.polls.all()
+
+        results = list()
+        for poll in polls:
+            result_json = poll.result_json
+
+            if result_json[len(result_json)-1] == ',':
+                result_json = result_json[0:len(result_json)-1]
+
+            result_json = json.loads(result_json)
+            results.append(result_json)
+
+        context['event_results'] = results
+
         return context
 
 
@@ -61,6 +76,10 @@ class PollDetailView(generic.View):
         context['form'] = VoteForm(instance=self.object)
         context['poll_count'] = self.object.event.polls.all().count()
         return context
+
+
+class EventDetailResultsView(EventDetailView):
+    template_name = "polls/event_results.html"
 
 
 def util_get_poll_by_event_index(event, poll_id):
@@ -248,21 +267,6 @@ def event_end(request, event_id):
     return HttpResponseRedirect(reverse('polls:view-event', args=[event_id]))
 
 
-# Returns a JSONed version of the results
-def results(request, event_id):
-    event = get_object_or_404(Event, pk=event_id)
-    polls = event.polls.all()
-
-    results = ""
-    results += "{\"polls\":["
-    for poll in polls:
-        results += poll.result_json
-
-    results += "]}"
-
-    return HttpResponse(results)
-
-
 def event_trustee_decrypt(request, event_id):
     event = get_object_or_404(Event, pk=event_id)
     access_key = request.GET.get('key', None)
@@ -334,7 +338,7 @@ def event_trustee_decrypt(request, event_id):
                     # TODO: Combine partial decryptions and gen results
                     combine_decryptions_and_tally.delay(event)
 
-                messages.add_message(request, messages.SUCCESS, 'Your secret key has been successfully submitted')
+                messages.add_message(request, messages.SUCCESS, 'Your partial decryptions have been successfully submitted')
                 return HttpResponseRedirect(reverse("user_home"))
 
     # Without an access key, the client does not have permission to access this page

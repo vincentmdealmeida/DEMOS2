@@ -1,3 +1,18 @@
+function showDialogWithText(titleTxt, bodyTxt) {
+    var modalDialog = $('#modalDialog');
+    var title = modalDialog.find('.modal-title');
+    var body = modalDialog.find('.modal-body');
+
+    title.text(titleTxt);
+
+    var p = document.createElement("p");
+    p.innerHTML = bodyTxt;
+    body.empty();
+    body.append( p );
+
+    modalDialog.modal('show');
+}
+
 // This should stop people ticking more than the maximum permitted
 function updateCheckboxInteractivity() {
     var inputs = $("label input[type=checkbox]");
@@ -52,21 +67,13 @@ function isVotingInputValid() {
     // This will highlight when people haven't selected enough options
 
     if(!valid) {
-        var modalDialog = $('#modalDialog');
-        var title = modalDialog.find('.modal-title');
-        var body = modalDialog.find('.modal-body');
-        var errText = "You've only selected " + selectedCount
+        let errText = "You've only selected " + selectedCount
             + " option(s). The minimum number you need to select is " + MIN_SELECTIONS
             + " and the maximum is " + MAX_SELECTIONS + ". Please go back and correct this.";
 
-        title.text('Voting Error');
+        let titleTxt = 'Voting Error';
 
-        var p = document.createElement("p");
-        p.innerHTML = errText;
-        body.empty();
-        body.append( p );
-
-        modalDialog.modal('show');
+        showDialogWithText(titleTxt, errText);
         return;
     }
 
@@ -88,7 +95,6 @@ function genBlankVote() {
     return vote;
 }
 
-var progress = 0;
 var progressBar = document.getElementById("progress-bar");
 
 // Based on the user's vote in the current poll, this generates a ballot which
@@ -125,15 +131,21 @@ function generateBallot() {
     checkboxInputs.each(function() {
         var checkbox = $(this);
 
-        // Push the selected option values to an array
+        // Push the selected option values (ones that have been checked) to an array
         if(checkbox.prop('checked')) {
             unencryptedVotes.push(checkbox.val());
         }
-        // For whatever hasn't been selected, push a blank vote to the array
-        else {
+    });
+
+    // If there is a dif between the num selected and the max allowed, push blank votes to the array to pad this
+    // to prevent information leakage
+    if(unencryptedVotes.length < MAX_SELECTIONS) {
+        let blankVotesToPush = MAX_SELECTIONS - unencryptedVotes.length;
+
+        for(let i = 0; i < blankVotesToPush; i++) {
             unencryptedVotes.push(genBlankVote());
         }
-    });
+    }
 
     // Encrypt all of the votes for this ballot
     var encryptedVotes = [];
@@ -163,12 +175,9 @@ function generateBallot() {
         });
     });
 
-    var ballot = {
+    return {
         encryptedVotes: encryptedVotes
     };
-
-
-    return ballot;
 }
 
 $('#gen-ballots-btn').click(function() {
@@ -181,28 +190,19 @@ $('#gen-ballots-btn').click(function() {
         $('#progress-bar-description').toggleClass('hidden');
         $('#progress-bar-container').toggleClass('hidden');
 
-        setTimeout(generateBallotsAndShowUsr, 50);
+        setTimeout(generateBallotsAndShowUsr, 25);
     }
 });
 
 function voteSuccessfullyReceived() {
-    var modalDialog = $('#modalDialog');
-    var title = modalDialog.find('.modal-title');
-    var body = modalDialog.find('.modal-body');
-
-    title.text('Vote Successfully Received');
-    var bodyText = "Thank you for voting!";
+    let titleTxt = 'Vote Successfully Received';
+    let bodyText = "Thank you for voting!";
 
     if(POLL_NUM !== POLL_COUNT) {
         bodyText += " You can vote on the next poll by closing down this dialog and clicking 'Next Poll'.";
     }
 
-    var p = document.createElement("p");
-    p.innerHTML = bodyText;
-    body.empty();
-    body.append( p );
-
-    modalDialog.modal('show');
+    showDialogWithText(titleTxt, bodyText);
 }
 
 var CSRF = $( "input[name='csrfmiddlewaretoken']" ).val();
@@ -230,25 +230,135 @@ function sendBallotToServer(ballot) {
     });
 }
 
+var bytestostring = function(b) {
+    var s = "";
+    var len = b.length;
+    var ch;
+    for (var i = 0; i < len; i++) {
+        ch = b[i];
+        s += ((ch >>> 4) & 15).toString(16);
+        s += (ch & 15).toString(16);
+    }
+    return s;
+};
+
+var stringtobytes = function(s) {
+    var b = [];
+    for (var i = 0; i < s.length; i++) {
+        b.push(s.charCodeAt(i));
+    }
+    return b;
+};
+
+function SHA256Hash(bytes, toStr) {
+    var ctx = new CTX();
+
+    var R = [];
+    var H = new ctx.HASH256();
+
+    H.process_array(bytes);
+    R = H.hash();
+
+    if (R.length === 0) {
+        return null;
+    }
+
+    if(toStr) {
+        // If toStr is true we return the stringified version of the bytes of the hash
+        return bytestostring(R);
+    } else {
+        // If toStr is false we return the bytes of the hash
+        return R;
+    }
+}
+
+// FAO Ben: Called once the ballot has been sent to the back-end and dialog has closed
+function onAfterBallotSend() {
+    // TODO: FAO Ben: Implement QR func here.
+    // TODO: Currently, there is a dialog already implemented in the event_vote.html page which is
+    // TODO: used for voting error information but could be used to display the QR code using JS in
+    // TODO: a similar way that showBallotChoiceDialog does.
+}
+
+function processBallotSelection(selection, selectionHash, successFn) {
+    // Dispatch the ballot to the server
+    sendBallotToServer(selection);
+
+    // Close the choice selection dialog
+    var modalDialog = $('#modalDialog');
+    modal.modal('hide');
+
+    // Call the successfn currently with the selection hash but this may not be needed
+    successFn(selectionHash);
+}
+
+function showBallotChoiceDialog(ballotA, ballotB) {
+    // Output hashes of the 2 ballots
+    const BALLOT_A_HASH = SHA256Hash(stringtobytes(JSON.stringify(ballotA)), true);
+    const BALLOT_B_HASH = SHA256Hash(stringtobytes(JSON.stringify(ballotB)), true);
+
+    // With the ballots and their hashes generated, we can display the ballot choice dialog
+    var modalDialog = $('#modalDialog');
+    var title = modalDialog.find('.modal-title');
+    var body = modalDialog.find('.modal-body');
+    body.empty();
+    title.text('Please Select a Ballot');
+
+    // Generate the body of the dialog which consists of a button for A and for B as well as their hashes
+    var choiceGroupDiv = document.createElement('div');
+    choiceGroupDiv.setAttribute('class', 'choice-group');
+
+    var btnChoiceA = document.createElement('a');
+    btnChoiceA.setAttribute('id', 'choice-A');
+    btnChoiceA.setAttribute('class', 'btn btn-sq btn-primary');
+    btnChoiceA.innerHTML = 'A';
+    choiceGroupDiv.append(btnChoiceA);
+
+    var btnChoiceB = document.createElement('a');
+    btnChoiceB.setAttribute('id', 'choice-B');
+    btnChoiceB.setAttribute('class', 'btn btn-sq btn-warning choice');
+    btnChoiceB.innerHTML = 'B';
+    choiceGroupDiv.append(btnChoiceB);
+
+    // ----------------------------------------------
+
+    var hashGroupDiv = document.createElement('div');
+    var br = document.createElement('br');
+    hashGroupDiv.append( br );
+
+    var hashA = document.createElement("span");
+    hashA.innerHTML = "Hash A: " + BALLOT_A_HASH;
+    hashGroupDiv.append( hashA );
+
+    var br2 = document.createElement('br');
+    hashGroupDiv.append( br2 );
+
+    var hashB = document.createElement("span");
+    hashB.innerHTML = "Hash B: " + BALLOT_B_HASH;
+    hashGroupDiv.append( hashB );
+
+    // -----------------------------------------------
+
+    body.append(choiceGroupDiv);
+    body.append(hashGroupDiv);
+
+    modalDialog.modal('show');
+
+    // Register callback functions for the selection of either A or B
+    $('#choice-A').click(function(e) {
+        processBallotSelection(ballotA, BALLOT_A_HASH, onAfterBallotSend);
+    });
+
+    $('#choice-B').click(function(e) {
+        processBallotSelection(ballotB, BALLOT_B_HASH, onAfterBallotSend);
+    });
+}
+
 function generateBallotB(ballotA) {
     var ballotB = generateBallot();
     progressBar.setAttribute("style", "width: 100%;");
 
-    var ballots = {
-        A : ballotA,
-        B : ballotB
-    };
-
-    // TODO: Implement ballot choice UI and QR func here. At the moment the code automatically
-    // TODO: submits the first ballot (as if the user selected it) to the server but this needs updating.
-    // TODO: Currently, there is a dialog already implemented in the event_vote.html page which is
-    // TODO: used for voting error information but could be used to display the ballot choices.
-    // This delay allows the execution thread to update the above CSS on the progress bar
-    var selectedBallot = ballots.A;
-
-    setTimeout(function () {
-        sendBallotToServer(selectedBallot);
-    }, 50);
+    showBallotChoiceDialog(ballotA, ballotB);
 }
 
 function generateBallotsAndShowUsr() {
@@ -262,5 +372,5 @@ function generateBallotsAndShowUsr() {
     // This delay allows the execution thread to update the above CSS on the progress bar
     setTimeout(function () {
         generateBallotB(ballotA);
-    }, 125);
+    }, 150);
 }
