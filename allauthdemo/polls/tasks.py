@@ -16,7 +16,7 @@ from .crypto_rpc import param, combpk, add_ciphers, get_tally
     
     The following tasks were re-implemented by Thomas Smith: generate_event_param, tally_results, generate_combpk, generate_enc
     
-    This file was also updated by Vincent de Almeida 
+    This file was also updated by Vincent de Almeida and Ben Goldsworthy
 '''
 
 # Will store the result of the initial cal to param() from .cpp_calls

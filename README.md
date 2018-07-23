@@ -59,9 +59,17 @@ python manage.py runserver
 
 The application will then be available at `127.0.0.1:8000`.
 
-You can then click on 'Join' to create a new user account. Currently, a server error is thrown when you create a new email account saying something like 'Too Many Attempts'. Rest assured that the account will have been created. Navigate back to the home page and you should be able to log in. This will hopefully be fixed in a future version.
+You can then click on 'Join' to create a new user account.
 
-### Step 2: Running Celery
+### Step 2: Running the Node.js Server
+
+The Node.js server exposes a lot of cryptographic operations that the application depends on throughout. To run the server, issue the following command line request from the `Node/` folder:
+
+```
+node index.js
+```
+
+### Step 3: Running Celery
 
 Celery is used to run tasks asynchronously and the DEMOS2 application can't run without this application. A bash script called `start_celery_worker.sh` is provided to make starting a worker as easy as possible:
 
@@ -69,10 +77,3 @@ Celery is used to run tasks asynchronously and the DEMOS2 application can't run 
 ./start_celery_worker.sh
 ```
 
-### Step 3: Running the Node.js Server
-
-The Node.js server exposes a lot of cryptographic operations that the application depends on throughout. To run the server, issue the following command line request from the `Node/` folder:
-
-```
-node index.js
-```

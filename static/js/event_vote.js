@@ -211,7 +211,7 @@ function csrfSafeMethod(method) {
     return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
 }
 
-function sendBallotToServer(ballot) {
+function sendBallotToServer(selection, altHash) {
     $.ajaxSetup({
         beforeSend: function(xhr, settings) {
             if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
@@ -223,9 +223,9 @@ function sendBallotToServer(ballot) {
     $.ajax({
          type : "POST",
          url : window.location,
-         data : JSON.stringify({ ballot: ballot}),
+         data : JSON.stringify({ ballot: selection}),
          success : function(){
-             voteSuccessfullyReceived();
+             onAfterBallotSend(altHash);
          }
     });
 }
@@ -272,30 +272,69 @@ function SHA256Hash(bytes, toStr) {
     }
 }
 
-// FAO Ben: Called once the ballot has been sent to the back-end and dialog has closed
-function onAfterBallotSend() {
-    // TODO: FAO Ben: Implement QR func here.
-    // TODO: Currently, there is a dialog already implemented in the event_vote.html page which is
-    // TODO: used for voting error information but could be used to display the QR code using JS in
-    // TODO: a similar way that showBallotChoiceDialog does.
+// Called once the ballot has been sent to the back-end and dialog has closed
+function onAfterBallotSend(altHash) {
+    let titleText = 'Vote Successfully Received';
+    let bodyText = "Thank you for voting! This is your copy of your ballot - make sure to save it onto your phone before closing this window.";
+
+    if(POLL_NUM !== POLL_COUNT) {
+        bodyText += " You can vote on the next poll by closing down this dialog and clicking 'Next Poll'.";
+    }
+
+    // With one ballot selected, we can display a QR code of the voter's copy
+    var modalDialog = $('#modalDialog');
+    var title = modalDialog.find('.modal-title');
+    var body = modalDialog.find('.modal-body');
+    title.text(titleText);
+    body.empty();
+
+    var p = document.createElement("p");
+    p.innerHTML = bodyText;
+    body.append(p);
+
+    // Generate the body of the dialog which displays the unselected ballot QR code and hash
+    var choiceGroupDiv = document.createElement('div');
+    choiceGroupDiv.setAttribute('class', 'choice-group');
+
+    var QRCodeImg = document.createElement('img');
+    QRCodeImg.setAttribute('class', 'QR-code');
+    new QRCode(QRCodeImg, altHash);
+
+    choiceGroupDiv.append(QRCodeImg);
+
+    // ----------------------------------------------
+
+    var hashGroupDiv = document.createElement('div');
+    var br = document.createElement('br');
+    hashGroupDiv.append( br );
+
+    var hash = document.createElement("span");
+    hash.innerHTML = "Hash: " + altHash;
+    hashGroupDiv.append( hash );
+
+    // -----------------------------------------------
+
+    body.append(choiceGroupDiv);
+    body.append(hashGroupDiv);
+
+    modalDialog.modal('show');
 }
 
-function processBallotSelection(selection, selectionHash, successFn) {
+function processBallotSelection(selection, selectionHash, alt, altHash) {
     // Dispatch the ballot to the server
-    sendBallotToServer(selection);
-
-    // Close the choice selection dialog
-    var modalDialog = $('#modalDialog');
-    modal.modal('hide');
+    sendBallotToServer(selection, altHash);
 
     // Call the successfn currently with the selection hash but this may not be needed
-    successFn(selectionHash);
+    //successFn(alt, altHash);
 }
 
 function showBallotChoiceDialog(ballotA, ballotB) {
-    // Output hashes of the 2 ballots
-    const BALLOT_A_HASH = SHA256Hash(stringtobytes(JSON.stringify(ballotA)), true);
-    const BALLOT_B_HASH = SHA256Hash(stringtobytes(JSON.stringify(ballotB)), true);
+    var ballots = new Array(ballotA, ballotB);
+    var ballotHashes = new Array(2);
+
+    // Hash both ballots and store
+    for (let i = 0; i <= 1; i++)
+        ballotHashes[i] = SHA256Hash(stringtobytes(JSON.stringify(ballots[i])), true);
 
     // With the ballots and their hashes generated, we can display the ballot choice dialog
     var modalDialog = $('#modalDialog');
@@ -327,14 +366,14 @@ function showBallotChoiceDialog(ballotA, ballotB) {
     hashGroupDiv.append( br );
 
     var hashA = document.createElement("span");
-    hashA.innerHTML = "Hash A: " + BALLOT_A_HASH;
+    hashA.innerHTML = "Hash A: " + ballotHashes[0];
     hashGroupDiv.append( hashA );
 
     var br2 = document.createElement('br');
     hashGroupDiv.append( br2 );
 
     var hashB = document.createElement("span");
-    hashB.innerHTML = "Hash B: " + BALLOT_B_HASH;
+    hashB.innerHTML = "Hash B: " + ballotHashes[1];
     hashGroupDiv.append( hashB );
 
     // -----------------------------------------------
@@ -346,11 +385,11 @@ function showBallotChoiceDialog(ballotA, ballotB) {
 
     // Register callback functions for the selection of either A or B
     $('#choice-A').click(function(e) {
-        processBallotSelection(ballotA, BALLOT_A_HASH, onAfterBallotSend);
+        processBallotSelection(ballots[0], ballotHashes[0], ballots[1], ballotHashes[1]);
     });
 
     $('#choice-B').click(function(e) {
-        processBallotSelection(ballotB, BALLOT_B_HASH, onAfterBallotSend);
+        processBallotSelection(ballots[1], ballotHashes[1], ballots[0], ballotHashes[0]);
     });
 }
 
