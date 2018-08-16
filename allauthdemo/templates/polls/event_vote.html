@@ -53,6 +53,7 @@
         </span>
 
         <!-- Poll Voting Section -->
+        <p id="poll-num" hidden>{{ poll_num}}</p>
         <h3>Poll {{ poll_num }} of {{ poll_count }}: {{object.question_text}}</h3>
         <hr/>
 
@@ -124,7 +125,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                  <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                  <button id="close-button" type="button" class="btn btn-danger" data-dismiss="modal">Close without submitting vote</button>
                 </div>
               </div>
 

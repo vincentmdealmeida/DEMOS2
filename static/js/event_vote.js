@@ -80,22 +80,21 @@ function isVotingInputValid() {
     return valid;
 }
 
-// Generates a blank vote as a string using the binary encoding scheme
-function genBlankVote() {
-    var vote = "";
-
-    for(var i = 0; i < OPTION_COUNT; i++) {
-        vote += "0";
-
-        if (i !== (OPTION_COUNT - 1)) {
-            vote += ",";
-        }
-    }
-
-    return vote;
-}
-
 var progressBar = document.getElementById("progress-bar");
+
+$('#gen-ballots-btn').click(function() {
+    // Ensure that the user selections are valid
+    if(isVotingInputValid()) {
+        // Hide the button
+        $(this).toggleClass('hidden');
+
+        // Inject the description progress bar which can then be updated by the encrypt btn
+        $('#progress-bar-description').toggleClass('hidden');
+        $('#progress-bar-container').toggleClass('hidden');
+
+        setTimeout(generateBallots, 25);
+    }
+});
 
 // Based on the user's vote in the current poll, this generates a ballot which
 // does not leak information about how many options the user has selected
@@ -156,16 +155,20 @@ function generateBallot() {
         unencryptedVote.split(',').forEach(function(fragment) {
             var cipher = encrypt(params, pk, parseInt(fragment));
 
-            // Store C1 and C2 from the cipher in the fragment
+            // Store C1, C2 and r from the cipher in the fragment
             var c1Bytes = [];
             cipher.C1.toBytes(c1Bytes);
 
             var c2Bytes = [];
             cipher.C2.toBytes(c2Bytes);
 
+            var rBytes = [];
+            cipher.r.toBytes(rBytes);
+
             encFragments.push({
                 C1 : c1Bytes.toString(),
-                C2 : c2Bytes.toString()
+                C2 : c2Bytes.toString(),
+                r : rBytes.toString()
             });
         });
 
@@ -180,54 +183,25 @@ function generateBallot() {
     };
 }
 
-$('#gen-ballots-btn').click(function() {
-    // Ensure that the user selections are valid
-    if(isVotingInputValid()) {
-        // Hide the button
-        $(this).toggleClass('hidden');
+// Generates a blank vote as a string using the binary encoding scheme
+function genBlankVote() {
+    var vote = "";
 
-        // Inject the description progress bar which can then be updated by the encrypt btn
-        $('#progress-bar-description').toggleClass('hidden');
-        $('#progress-bar-container').toggleClass('hidden');
+    for(var i = 0; i < OPTION_COUNT; i++) {
+        vote += "0";
 
-        setTimeout(generateBallotsAndShowUsr, 25);
-    }
-});
-
-function voteSuccessfullyReceived() {
-    let titleTxt = 'Vote Successfully Received';
-    let bodyText = "Thank you for voting!";
-
-    if(POLL_NUM !== POLL_COUNT) {
-        bodyText += " You can vote on the next poll by closing down this dialog and clicking 'Next Poll'.";
+        if (i !== (OPTION_COUNT - 1)) {
+            vote += ",";
+        }
     }
 
-    showDialogWithText(titleTxt, bodyText);
+    return vote;
 }
 
 var CSRF = $( "input[name='csrfmiddlewaretoken']" ).val();
 function csrfSafeMethod(method) {
     // these HTTP methods do not require CSRF protection
     return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
-}
-
-function sendBallotToServer(selection, altHash) {
-    $.ajaxSetup({
-        beforeSend: function(xhr, settings) {
-            if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                xhr.setRequestHeader("X-CSRFToken", CSRF);
-            }
-        }
-    });
-
-    $.ajax({
-         type : "POST",
-         url : window.location,
-         data : JSON.stringify({ ballot: selection}),
-         success : function(){
-             onAfterBallotSend(altHash);
-         }
-    });
 }
 
 var bytestostring = function(b) {
@@ -272,63 +246,24 @@ function SHA256Hash(bytes, toStr) {
     }
 }
 
-// Called once the ballot has been sent to the back-end and dialog has closed
-function onAfterBallotSend(altHash) {
-    let titleText = 'Vote Successfully Received';
-    let bodyText = "Thank you for voting! This is your copy of your ballot - make sure to save it onto your phone before closing this window.";
+function generateBallots() {
+    // Generate Ballot A and Ballot B to be displayed to the user
+    // This fn starts the process
+    var ballotA = generateBallot();
 
-    if(POLL_NUM !== POLL_COUNT) {
-        bodyText += " You can vote on the next poll by closing down this dialog and clicking 'Next Poll'.";
-    }
+    // Update the progress bar once the generation has completed
+    progressBar.setAttribute("style", "width: 50%;");
 
-    // With one ballot selected, we can display a QR code of the voter's copy
-    var modalDialog = $('#modalDialog');
-    var title = modalDialog.find('.modal-title');
-    var body = modalDialog.find('.modal-body');
-    title.text(titleText);
-    body.empty();
+    // This delay allows the execution thread to update the above CSS on the progress bar
+    setTimeout(function () {
+        var ballotB = generateBallot();
+        progressBar.setAttribute("style", "width: 100%;");
 
-    var p = document.createElement("p");
-    p.innerHTML = bodyText;
-    body.append(p);
-
-    // Generate the body of the dialog which displays the unselected ballot QR code and hash
-    var choiceGroupDiv = document.createElement('div');
-    choiceGroupDiv.setAttribute('class', 'choice-group');
-
-    var QRCodeImg = document.createElement('img');
-    QRCodeImg.setAttribute('class', 'QR-code');
-    new QRCode(QRCodeImg, altHash);
-
-    choiceGroupDiv.append(QRCodeImg);
-
-    // ----------------------------------------------
-
-    var hashGroupDiv = document.createElement('div');
-    var br = document.createElement('br');
-    hashGroupDiv.append( br );
-
-    var hash = document.createElement("span");
-    hash.innerHTML = "Hash: " + altHash;
-    hashGroupDiv.append( hash );
-
-    // -----------------------------------------------
-
-    body.append(choiceGroupDiv);
-    body.append(hashGroupDiv);
-
-    modalDialog.modal('show');
+        showFirstQRCode(ballotA, ballotB);
+    }, 150);
 }
 
-function processBallotSelection(selection, selectionHash, alt, altHash) {
-    // Dispatch the ballot to the server
-    sendBallotToServer(selection, altHash);
-
-    // Call the successfn currently with the selection hash but this may not be needed
-    //successFn(alt, altHash);
-}
-
-function showBallotChoiceDialog(ballotA, ballotB) {
+function showFirstQRCode(ballotA, ballotB) {
     var ballots = new Array(ballotA, ballotB);
     var ballotHashes = new Array(2);
 
@@ -336,28 +271,18 @@ function showBallotChoiceDialog(ballotA, ballotB) {
     for (let i = 0; i <= 1; i++)
         ballotHashes[i] = SHA256Hash(stringtobytes(JSON.stringify(ballots[i])), true);
 
-    // With the ballots and their hashes generated, we can display the ballot choice dialog
+    // With the ballots and their hashes generated, we can display the QR code of both hashes
     var modalDialog = $('#modalDialog');
     var title = modalDialog.find('.modal-title');
     var body = modalDialog.find('.modal-body');
+    var footer = modalDialog.find('.modal-footer');
+
     body.empty();
-    title.text('Please Select a Ballot');
+    title.text('Please Scan this QR Code');
 
-    // Generate the body of the dialog which consists of a button for A and for B as well as their hashes
-    var choiceGroupDiv = document.createElement('div');
-    choiceGroupDiv.setAttribute('class', 'choice-group');
-
-    var btnChoiceA = document.createElement('a');
-    btnChoiceA.setAttribute('id', 'choice-A');
-    btnChoiceA.setAttribute('class', 'btn btn-sq btn-primary');
-    btnChoiceA.innerHTML = 'A';
-    choiceGroupDiv.append(btnChoiceA);
-
-    var btnChoiceB = document.createElement('a');
-    btnChoiceB.setAttribute('id', 'choice-B');
-    btnChoiceB.setAttribute('class', 'btn btn-sq btn-warning choice');
-    btnChoiceB.innerHTML = 'B';
-    choiceGroupDiv.append(btnChoiceB);
+    var QRCodeImg = document.createElement('img');
+    QRCodeImg.setAttribute('class', 'QR-code');
+    new QRCode(QRCodeImg, ballotHashes[0] + ';' + ballotHashes[1]);
 
     // ----------------------------------------------
 
@@ -378,38 +303,153 @@ function showBallotChoiceDialog(ballotA, ballotB) {
 
     // -----------------------------------------------
 
-    body.append(choiceGroupDiv);
+    body.append(QRCodeImg);
     body.append(hashGroupDiv);
+
+    var closeButton = $('close-button');
+    closeButton.removeClass('btn-success');
+    closeButton.addClass('btn-danger');
+    closeButton.text("Close without submitting vote");
+
+    var nextButton = document.createElement('button');
+    nextButton.setAttribute('type', 'button');
+    nextButton.setAttribute('id', 'next-button');
+    nextButton.setAttribute('class', 'btn btn-default');
+    nextButton.innerHTML = "Next";
+
+    footer.prepend(nextButton);
+
+
+    modalDialog.modal('show');
+
+    $('#next-button').click(function(e) {
+        showBallotChoiceDialog(ballots);
+    });
+}
+
+function showBallotChoiceDialog(ballots) {
+    // Display the ballot choice dialog
+    var modalDialog = $('#modalDialog');
+    var title = modalDialog.find('.modal-title');
+    var body = modalDialog.find('.modal-body');
+
+    body.empty();
+    title.text('Please Select a Ballot');
+
+    // Generate the body of the dialog which consists of a button for A and for B
+    var choiceGroupDiv = document.createElement('div');
+    choiceGroupDiv.setAttribute('class', 'choice-group');
+
+    var btnChoiceA = document.createElement('a');
+    btnChoiceA.setAttribute('id', 'choice-A');
+    btnChoiceA.setAttribute('class', 'btn btn-sq btn-primary');
+    btnChoiceA.innerHTML = 'A';
+    choiceGroupDiv.append(btnChoiceA);
+
+    var btnChoiceB = document.createElement('a');
+    btnChoiceB.setAttribute('id', 'choice-B');
+    btnChoiceB.setAttribute('class', 'btn btn-sq btn-warning choice');
+    btnChoiceB.innerHTML = 'B';
+    choiceGroupDiv.append(btnChoiceB);
+
+    body.append(choiceGroupDiv);
 
     modalDialog.modal('show');
 
     // Register callback functions for the selection of either A or B
     $('#choice-A').click(function(e) {
-        processBallotSelection(ballots[0], ballotHashes[0], ballots[1], ballotHashes[1]);
+        sendBallotsToServer(ballots[0], ballots[1]);
     });
 
     $('#choice-B').click(function(e) {
-        processBallotSelection(ballots[1], ballotHashes[1], ballots[0], ballotHashes[0]);
+        sendBallotsToServer(ballots[1], ballots[0]);
     });
 }
 
-function generateBallotB(ballotA) {
-    var ballotB = generateBallot();
-    progressBar.setAttribute("style", "width: 100%;");
+function sendBallotsToServer(selection, alt) {
+    $.ajaxSetup({
+        beforeSend: function(xhr, settings) {
+            if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                xhr.setRequestHeader("X-CSRFToken", CSRF);
+            }
+        }
+    });
 
-    showBallotChoiceDialog(ballotA, ballotB);
+    // Elliptic curve cryptography params used for encryption of encrypted vote
+    // fragments
+    var ctx = new CTX("BN254CX");
+    var n = new ctx.BIG();
+    var g1 = new ctx.ECP();
+    var g2 = new ctx.ECP2();
+
+    var parameter = $('#event-param').val();
+    var tempParams = JSON.parse(JSON.parse(parameter).crypto);
+
+    //copying the values
+    n.copy(tempParams.n);
+    g1.copy(tempParams.g1);
+    g2.copy(tempParams.g2);
+
+    var params = {
+      n:n,
+      g1:g1,
+      g2:g2
+    };
+
+    var tempPK = JSON.parse($('#comb_pk').val());
+    var pk = new ctx.ECP(0);
+    pk.copy(tempPK.PK);
+
+    var voterID = window.location.search.slice(1).split(/=(.+)/)[1];//.slice(0, -2);
+    var eventID = window.location.href.split('/')[4];
+    var pollNum = $('#poll-num').text();
+    var ballotID = encodeURIComponent(btoa(JSON.stringify({voterID: voterID, eventID: eventID, pollNum: pollNum})));
+
+    var SK = "temporary";
+    var encAlt = sjcl.encrypt(SK, JSON.stringify(alt));
+    selection = JSON.stringify(selection);
+
+    $.ajax({
+         type : "POST",
+         url : window.location,
+         data : {  handle: ballotID, encBallot: encAlt, ballot: selection },
+         success : function(){
+             onAfterBallotSend(ballotID, SK);
+         }
+    });
 }
 
-function generateBallotsAndShowUsr() {
-    // Generate Ballot A and Ballot B to be displayed to the user
-    // This fn starts the process
-    var ballotA = generateBallot();
+// Called once the ballot has been sent to the back-end and dialog has closed
+function onAfterBallotSend(ballotID, SK) {
+    let titleText = 'Vote Successfully Received';
+    let bodyText = "Thank you for voting! Your secret key is '"+SK+"'. Make sure to scan this QR code with your phone before closing this window.";
 
-    // Update the progress bar once the generation has completed
-    progressBar.setAttribute("style", "width: 50%;");
+    if(POLL_NUM !== POLL_COUNT) {
+        bodyText += " You can vote on the next poll by closing down this dialog and clicking 'Next Poll'.";
+    }
 
-    // This delay allows the execution thread to update the above CSS on the progress bar
-    setTimeout(function () {
-        generateBallotB(ballotA);
-    }, 150);
+    // With one ballot selected, we can display a QR code of the ballot ID
+    var modalDialog = $('#modalDialog');
+    var title = modalDialog.find('.modal-title');
+    var body = modalDialog.find('.modal-body');
+    title.text(titleText);
+    body.empty();
+
+    var p = document.createElement("p");
+    p.innerHTML = bodyText;
+    body.append(p);
+
+    // Generate the body of the dialog which displays the unselected ballot QR code
+    var QRCodeImg = document.createElement('img');
+    QRCodeImg.setAttribute('class', 'QR-code');
+    new QRCode(QRCodeImg, ballotID);
+
+    body.append(QRCodeImg);
+
+    var closeButton = $('#close-button');
+    closeButton.removeClass('btn-danger');
+    closeButton.addClass('btn-success');
+    closeButton.text("Close");
+
+    modalDialog.modal('show');
 }

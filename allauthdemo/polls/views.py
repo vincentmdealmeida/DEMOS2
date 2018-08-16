@@ -1,6 +1,8 @@
 import urllib
 import urllib2
 import json
+import logging
+import base64
 
 from django.contrib import messages
 from django.http import HttpResponseRedirect, HttpResponse, Http404
@@ -11,7 +13,7 @@ from django.views import generic
 from django.conf import settings
 
 from .forms import PollForm, OptionFormset, VoteForm, EventSetupForm, EventEditForm
-from .models import Event, Poll, Ballot, EncryptedVote, TrusteeKey, PartialBallotDecryption, CombinedBallot, VoteFragment
+from .models import Event, Poll, Ballot, EncBallot,  EncryptedVote, TrusteeKey, PartialBallotDecryption, CombinedBallot, VoteFragment
 from allauthdemo.auth.models import DemoUser
 
 from .tasks import email_trustees_prep, update_EID, generate_combpk, event_ended, create_ballots
@@ -110,6 +112,15 @@ def edit_poll(request, event_id, poll_id):
                 return HttpResponseRedirect(reverse('polls:event-polls', args=[poll.event_id]))
 
 
+def vote_audit(request):
+    encryptedBallot = get_object_or_404(EncBallot, handle=''+urllib.quote_plus(request.GET.get('handle', None)))
+
+    return render(request, "polls/vote_audit.html",
+                  {
+                      "ballot": encryptedBallot.ballot
+                  })
+
+
 def event_vote(request, event_id, poll_id):
     event = get_object_or_404(Event, pk=event_id)
 
@@ -172,9 +183,20 @@ def event_vote(request, event_id, poll_id):
         cant_vote_reason = "The event either isn't ready for voting or it has expired and therefore you cannot vote."
 
     if request.method == "POST":
-        data = json.loads(request.POST.lists()[0][0])
-        ballot_json = data['ballot']
+        ballot_json = json.loads(request.POST.get('ballot'))
         encrypted_votes_json = ballot_json['encryptedVotes']
+
+        enc_ballot_json = request.POST.get('encBallot')
+        handle_json = request.POST.get('handle')
+
+        # Adds or replaces the encrypted un-submitted ballot to the database for the auditor app to pick up later
+        if EncBallot.objects.filter(handle=handle_json).exists():
+            b = EncBallot.objects.get(handle=handle_json)
+            b.ballot = ballot_json
+            b.save()
+        else:
+            b = EncBallot(handle=handle_json, ballot=enc_ballot_json)
+            b.save()
 
         # Before storing the encrypted votes, we need the voter's ballot
         ballot, created = Ballot.objects.get_or_create(voter=email_key[0].user, poll=poll)

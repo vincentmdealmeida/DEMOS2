@@ -20,5 +20,6 @@ urlpatterns = [
     url(r'^(?P<event_id>[0-9a-f-]+)/prepare/$', views.event_trustee_setup, name='prepare-event'),
     url(r'^(?P<event_id>[0-9a-f-]+)/poll/(?P<poll_id>[0-9a-f-]+)/vote/$', views.event_vote, name='event-vote'),
     url(r'^(?P<event_id>[0-9a-f-]+)/create/poll/$', login_required(views.manage_questions), name='create-poll'),
-    url(r'^(?P<event_id>[0-9a-f-]+)/poll/(?P<poll_id>[0-9a-f-]+)/edit$', login_required(views.edit_poll), name='edit-poll')
+    url(r'^(?P<event_id>[0-9a-f-]+)/poll/(?P<poll_id>[0-9a-f-]+)/edit$', login_required(views.edit_poll), name='edit-poll'),
+    url(r'^audit/$', views.vote_audit, name='vote_audit')
 ]
