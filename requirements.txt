@@ -8,4 +8,3 @@ django-simple-captcha
 django-nocaptcha-recaptcha
 django-recaptcha
 mysqlclient
-

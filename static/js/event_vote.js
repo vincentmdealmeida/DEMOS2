@@ -1,3 +1,5 @@
+var dialogOpen = false;
+
 function showDialogWithText(titleTxt, bodyTxt) {
     var modalDialog = $('#modalDialog');
     var title = modalDialog.find('.modal-title');
@@ -10,7 +12,10 @@ function showDialogWithText(titleTxt, bodyTxt) {
     body.empty();
     body.append( p );
 
-    modalDialog.modal('show');
+    if(!dialogOpen) {
+        modalDialog.modal('toggle');
+        dialogOpen = true;
+    }
 }
 
 // This should stop people ticking more than the maximum permitted
@@ -67,9 +72,16 @@ function isVotingInputValid() {
     // This will highlight when people haven't selected enough options
 
     if(!valid) {
-        let errText = "You've only selected " + selectedCount
-            + " option(s). The minimum number you need to select is " + MIN_SELECTIONS
-            + " and the maximum is " + MAX_SELECTIONS + ". Please go back and correct this.";
+        let errText = "You've only selected " + selectedCount;
+
+        if(selectedCount > 1) {
+            errText += " options.";
+        } else {
+            errText = " You haven't selected any options.";
+        }
+
+        errText += " The minimum number you need to select is " + MIN_SELECTIONS + " and the maximum is "
+            + MAX_SELECTIONS + ". Please go back and correct this.";
 
         let titleTxt = 'Voting Error';
 
@@ -203,6 +215,10 @@ function voteSuccessfullyReceived() {
     }
 
     showDialogWithText(titleTxt, bodyText);
+
+    // Update the dialog's btns
+    $('#cancelVoteBtn').addClass("hidden");
+    $('#closeDialogBtn').removeClass("hidden");
 }
 
 var CSRF = $( "input[name='csrfmiddlewaretoken']" ).val();
@@ -211,7 +227,8 @@ function csrfSafeMethod(method) {
     return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
 }
 
-function sendBallotToServer(ballot) {
+function sendBallotToServer(selection, ballot, ballotSelectionDialog) {
+    // Use ajax to send the selected ballot to server
     $.ajaxSetup({
         beforeSend: function(xhr, settings) {
             if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
@@ -223,11 +240,14 @@ function sendBallotToServer(ballot) {
     $.ajax({
          type : "POST",
          url : window.location,
-         data : JSON.stringify({ ballot: ballot}),
-         success : function(){
+         data : JSON.stringify({ selection: selection, ballot: ballot}),
+         success : function() {
              voteSuccessfullyReceived();
          }
     });
+
+    // Update the client to inform the user that the vote is being processed
+    showDialogWithText("Please Wait", "Processing Vote. Please wait...");
 }
 
 var bytestostring = function(b) {
@@ -280,16 +300,12 @@ function onAfterBallotSend() {
     // TODO: a similar way that showBallotChoiceDialog does.
 }
 
-function processBallotSelection(selection, selectionHash, successFn) {
+function processBallotSelection(selection, selectedBallot, selectedBallotHash, dialog, successFn) {
     // Dispatch the ballot to the server
-    sendBallotToServer(selection);
-
-    // Close the choice selection dialog
-    var modalDialog = $('#modalDialog');
-    modal.modal('hide');
+    sendBallotToServer(selection, selectedBallot, dialog);
 
     // Call the successfn currently with the selection hash but this may not be needed
-    successFn(selectionHash);
+    successFn(selectedBallotHash);
 }
 
 function showBallotChoiceDialog(ballotA, ballotB) {
@@ -342,15 +358,22 @@ function showBallotChoiceDialog(ballotA, ballotB) {
     body.append(choiceGroupDiv);
     body.append(hashGroupDiv);
 
-    modalDialog.modal('show');
+    // Prepare the appropriate dialog buttons
+    $('#cancelVoteBtn').removeClass("hidden");
+    $('#closeDialogBtn').removeClass("hidden").addClass("hidden");
+
+    if(!dialogOpen) {
+        modalDialog.modal('toggle');
+        dialogOpen = true;
+    }
 
     // Register callback functions for the selection of either A or B
     $('#choice-A').click(function(e) {
-        processBallotSelection(ballotA, BALLOT_A_HASH, onAfterBallotSend);
+        processBallotSelection("A", ballotA, BALLOT_A_HASH, modalDialog, onAfterBallotSend);
     });
 
     $('#choice-B').click(function(e) {
-        processBallotSelection(ballotB, BALLOT_B_HASH, onAfterBallotSend);
+        processBallotSelection("B", ballotB, BALLOT_B_HASH, modalDialog, onAfterBallotSend);
     });
 }
 
@@ -374,3 +397,29 @@ function generateBallotsAndShowUsr() {
         generateBallotB(ballotA);
     }, 150);
 }
+
+$('#modalDialog').on('hide.bs.modal', function (e) {
+    var titleText = $(this).find('.modal-title').text();
+
+    if(titleText.indexOf("Received") > -1) {
+        // Update page to reflect the fact that a vote has taken place
+        location.reload();
+    } else {
+        // Reset poll voting to allow user to vote again
+        progressBar.setAttribute("style", "width: 0%;");
+        $('#gen-ballots-btn').toggleClass("hidden");
+        $('#progress-bar-description').toggleClass('hidden');
+        $('#progress-bar-container').toggleClass('hidden');
+
+        var inputs = $("label input[type=checkbox]");
+        inputs.each(function () {
+            var input = $(this);
+            input.prop('checked', false);
+            input.prop('disabled', false);
+        });
+
+        selectedCount = 0;
+    }
+
+    dialogOpen = false;
+});
