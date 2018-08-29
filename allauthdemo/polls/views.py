@@ -47,6 +47,9 @@ class EventDetailView(generic.DetailView):
         for poll in polls:
             result_json = poll.result_json
 
+            if result_json is None:
+                continue
+
             if result_json[len(result_json)-1] == ',':
                 result_json = result_json[0:len(result_json)-1]
 
@@ -184,6 +187,7 @@ def event_vote(request, event_id, poll_id):
 
     if request.method == "POST":
         ballot_json = json.loads(request.POST.get('ballot'))
+        selection = request.POST.get('selection')
         encrypted_votes_json = ballot_json['encryptedVotes']
 
         enc_ballot_json = request.POST.get('encBallot')
@@ -213,6 +217,7 @@ def event_vote(request, event_id, poll_id):
                                             cipher_text_c2=fragment['C2'])
 
         ballot.cast = True
+        ballot.selection = selection
         ballot.save()
 
         combine_encrypted_votes.delay(email_key[0].user, poll)

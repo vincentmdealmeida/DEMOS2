@@ -28,9 +28,9 @@
         </div>
         <span><strong>Voting status:</strong>
             {% if has_voted %}
-                Voted - Re-Submitting will Change your Vote
+                <span style="color: green; font-weight: bold">Voted - Re-submitting will change your vote</span>
             {% else %}
-                Not Voted
+                <span style="color: red; font-weight: bold">Not Voted</span>
             {% endif %}
         </span>
         <br/>
@@ -105,13 +105,12 @@
         </div>
 
         <!-- Information Dialog called upon request -->
-        <div class="modal fade" id="modalDialog" role="dialog">
-            <div class="modal-dialog">
+        <div class="modal fade" id="modalDialog" role="dialog" tabindex="-1" data-backdrop="static">
+            <div class="modal-dialog" role="document">
 
               <!-- Dialog content-->
               <div class="modal-content">
                 <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal">&times;</button>
                     <h4 class="modal-title" style="text-align: center"><strong>Please Select a Ballot</strong></h4>
                 </div>
                 <div class="modal-body">
@@ -125,7 +124,8 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                  <button id="close-button" type="button" class="btn btn-danger" data-dismiss="modal">Close without submitting vote</button>
+                    <button id="cancelVoteBtn" type="button" class="btn btn-danger" data-dismiss="modal">Cancel</button>
+                    <button id="closeDialogBtn" type="button" class="btn btn-primary hidden" data-dismiss="modal">Close</button>
                 </div>
               </div>
 

@@ -1,3 +1,5 @@
+var dialogOpen = false;
+
 function showDialogWithText(titleTxt, bodyTxt) {
     var modalDialog = $('#modalDialog');
     var title = modalDialog.find('.modal-title');
@@ -10,7 +12,10 @@ function showDialogWithText(titleTxt, bodyTxt) {
     body.empty();
     body.append( p );
 
-    modalDialog.modal('show');
+    if(!dialogOpen) {
+        modalDialog.modal('toggle');
+        dialogOpen = true;
+    }
 }
 
 // This should stop people ticking more than the maximum permitted
@@ -67,9 +72,16 @@ function isVotingInputValid() {
     // This will highlight when people haven't selected enough options
 
     if(!valid) {
-        let errText = "You've only selected " + selectedCount
-            + " option(s). The minimum number you need to select is " + MIN_SELECTIONS
-            + " and the maximum is " + MAX_SELECTIONS + ". Please go back and correct this.";
+        let errText = "You've only selected " + selectedCount;
+
+        if(selectedCount > 1) {
+            errText += " options.";
+        } else {
+            errText = " You haven't selected any options.";
+        }
+
+        errText += " The minimum number you need to select is " + MIN_SELECTIONS + " and the maximum is "
+            + MAX_SELECTIONS + ". Please go back and correct this.";
 
         let titleTxt = 'Voting Error';
 
@@ -194,7 +206,7 @@ function genBlankVote() {
             vote += ",";
         }
     }
-
+  
     return vote;
 }
 
@@ -455,3 +467,29 @@ function onAfterBallotSend(ballotID, SK) {
 
     modalDialog.modal('show');
 }
+
+$('#modalDialog').on('hide.bs.modal', function (e) {
+    var titleText = $(this).find('.modal-title').text();
+
+    if(titleText.indexOf("Received") > -1) {
+        // Update page to reflect the fact that a vote has taken place
+        location.reload();
+    } else {
+        // Reset poll voting to allow user to vote again
+        progressBar.setAttribute("style", "width: 0%;");
+        $('#gen-ballots-btn').toggleClass("hidden");
+        $('#progress-bar-description').toggleClass('hidden');
+        $('#progress-bar-container').toggleClass('hidden');
+
+        var inputs = $("label input[type=checkbox]");
+        inputs.each(function () {
+            var input = $(this);
+            input.prop('checked', false);
+            input.prop('disabled', false);
+        });
+
+        selectedCount = 0;
+    }
+
+    dialogOpen = false;
+});
