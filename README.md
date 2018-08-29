@@ -10,11 +10,13 @@ https://github.com/CareyJWilliams/DEMOS2
 
 ### Main Application Dependencies
 
-* Python: Version 2.7 (anything higher than this will not currently work)
-* Python packages: Specified in `requirements.txt` - PyCharm will detect these dependencies and offer installation
-* MySQL Server: Community Edition (initialise with 'legacy password authentication')
-* New MySQL DB User: Default username and password specified in `aullauthdemo/settings.py`
-* New MySQL DB: `demos2` (also specified in `aullauthdemo/settings.py`) - make sure to set the charset to 'UTF8'
+* Python
+   * Version 2.7; anything higher than this will not currently work
+   * All Python packages specified in `requirements.txt`; PyCharm will detect these dependencies and offer installation
+* MySQL Server: Community Edition
+   * Initialise with 'legacy password authentication'
+   * Create a new MySQL DB user with the default username and password specified in `aullauthdemo/settings.py`
+   * Create a new MySQL DB called `demos2` (also specified in `aullauthdemo/settings.py`), making sure to set the charset to 'UTF8'
 
 ### Database setup
 

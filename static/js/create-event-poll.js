@@ -235,12 +235,16 @@ function isEventTimingsValid() {
     var valid = true;
     var helpBlockId = "event-timings-error-block";
 
-    // Extract the dates from the vote start and end input controls
-    var start_date_time = $('#vote-start-input').data('DateTimePicker').date();
-    var end_date_time = $('#vote-end-input').data('DateTimePicker').date();
+    // Extract the string val from the vote start and end input controls
+    var start_date_time = $('#vote-start-input').val();
+    var end_date_time = $('#vote-end-input').val();
+    
+    // Convert the string vals to Date objects
+    var start_dateObj = new Date(start_date_time);
+    var end_dateObj = new Date(end_date_time);
 
     // Ensure that the start date is before the end date and that the end date is after the start date
-    if(!(start_date_time < end_date_time && end_date_time > start_date_time)) {
+    if(!(start_dateObj < end_dateObj && end_dateObj > start_dateObj)) {
         checkAndAddError({
            error: "The start date must be before the end date and the end after the start date.",
            helpBlockId: "event-timings-error-block"

@@ -35,7 +35,6 @@ gpGen = function(){
         B.rcopy(ctx.ROM_CURVE.CURVE_Pyb);
 		var Qy=new ctx.FP2(0); Qy.bset(A,B);
 		var Q=new ctx.ECP2();
-		var Q=new ctx.ECP2();
 		Q.setxy(Qy,Qy);
 
 		return{
