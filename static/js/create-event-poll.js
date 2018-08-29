@@ -238,7 +238,7 @@ function isEventTimingsValid() {
     // Extract the string val from the vote start and end input controls
     var start_date_time = $('#vote-start-input').val();
     var end_date_time = $('#vote-end-input').val();
-
+    
     // Convert the string vals to Date objects
     var start_dateObj = new Date(start_date_time);
     var end_dateObj = new Date(end_date_time);

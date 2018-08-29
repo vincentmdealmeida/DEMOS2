@@ -118,7 +118,8 @@ encrypt=function(params,PK, m){
 		
 		return{
 		    C1:C1,
-		    C2:C2
+		    C2:C2,
+		    r:r
 		}
 }
 

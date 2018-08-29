@@ -1,5 +1,5 @@
 {
-  "name": "Node DEMOS2 Cryptography Server",
+  "name": "node-demos2-cryptography-server",
   "version": "1.0.0",
   "description": "Exposes Cryptographic Functionality from Various Endpoints",
   "main": "index.js",

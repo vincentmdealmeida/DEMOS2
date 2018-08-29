@@ -53,6 +53,7 @@
         </span>
 
         <!-- Poll Voting Section -->
+        <p id="poll-num" hidden>{{ poll_num}}</p>
         <h3>Poll {{ poll_num }} of {{ poll_count }}: {{object.question_text}}</h3>
         <hr/>
 
@@ -123,7 +124,6 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                  {% comment %}<button type="button" class="btn btn-danger" data-dismiss="modal">Cancel</button>{% endcomment %}
                     <button id="cancelVoteBtn" type="button" class="btn btn-danger" data-dismiss="modal">Cancel</button>
                     <button id="closeDialogBtn" type="button" class="btn btn-primary hidden" data-dismiss="modal">Close</button>
                 </div>

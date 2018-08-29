@@ -209,6 +209,11 @@ class Ballot(models.Model):
     cast = models.BooleanField(default=False)
 
 
+class EncBallot(models.Model):
+    handle = models.CharField(primary_key=True, default=uuid.uuid4, editable=False, max_length=255)
+    ballot = models.CharField(max_length=4096)
+
+
 # Implements the new binary encoding scheme
 class EncryptedVote(models.Model):
     ballot = models.ForeignKey(Ballot, on_delete=models.CASCADE, related_name="encrypted_vote")

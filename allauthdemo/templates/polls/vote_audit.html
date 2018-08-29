@@ -1,0 +1,18 @@
+{% extends "bases/bootstrap-with-nav.html" %}
+{% load staticfiles %}
+{% load bootstrap3 %}
+
+{% block content %}
+
+<input id="SK" value="temporary" type="text"/>
+<button id="begin-test">Verify Ballot</button>
+<br>
+<br>
+<label for="ballot">AES-encrypted ballot from server</label>
+<pre id="ballot">{{ ballot }}</pre>
+<label for="ballot-content">Decrypted ballot</label>
+<pre id="ballot-content"></pre>
+<label for="ballot">Ballot encoding</label>
+<pre id="ballot-result"></pre>
+
+{% endblock %}
