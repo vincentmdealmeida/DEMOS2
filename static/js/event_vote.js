@@ -319,7 +319,6 @@ function showFirstQRCode(ballotA, ballotB) {
 
     footer.prepend(nextButton);
 
-
     modalDialog.modal('show');
 
     $('#next-button').click(function(e) {
@@ -450,6 +449,9 @@ function onAfterBallotSend(ballotID, SK) {
     closeButton.removeClass('btn-danger');
     closeButton.addClass('btn-success');
     closeButton.text("Close");
+    if(POLL_NUM == POLL_COUNT) {
+        $('#next-button').hide();
+    }
 
     modalDialog.modal('show');
 }

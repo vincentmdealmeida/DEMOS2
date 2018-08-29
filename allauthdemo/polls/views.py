@@ -113,11 +113,11 @@ def edit_poll(request, event_id, poll_id):
 
 
 def vote_audit(request):
-    encryptedBallot = get_object_or_404(EncBallot, handle=''+urllib.quote_plus(request.GET.get('handle', None)))
+    encrypted_ballot = get_object_or_404(EncBallot, handle=''+urllib.quote_plus(request.GET.get('handle', None)))
 
     return render(request, "polls/vote_audit.html",
                   {
-                      "ballot": encryptedBallot.ballot
+                      "ballot": encrypted_ballot.ballot
                   })
 
 
@@ -192,7 +192,7 @@ def event_vote(request, event_id, poll_id):
         # Adds or replaces the encrypted un-submitted ballot to the database for the auditor app to pick up later
         if EncBallot.objects.filter(handle=handle_json).exists():
             b = EncBallot.objects.get(handle=handle_json)
-            b.ballot = ballot_json
+            b.ballot = enc_ballot_json
             b.save()
         else:
             b = EncBallot(handle=handle_json, ballot=enc_ballot_json)
