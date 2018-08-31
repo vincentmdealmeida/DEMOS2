@@ -211,7 +211,7 @@ class Ballot(models.Model):
 
 class EncBallot(models.Model):
     handle = models.CharField(primary_key=True, default=uuid.uuid4, editable=False, max_length=255)
-    ballot = models.CharField(max_length=4096)
+    ballot = models.CharField(max_length=10240)
 
 
 # Implements the new binary encoding scheme

@@ -212,6 +212,22 @@ def email_voters_vote_url(voters, event):
         voter.send_email(email_subject, email_body)
 
 
+@task()
+def email_voting_success(voter, ballotHandle, eventTitle):
+    email_subject = "Vote(s) received for Event '" + eventTitle + "'"
+
+    # Plain text email - this could be replaced for a HTML-based email in the future
+    email_body_base = str("")
+    email_body_base += "Dear Voter,\n\n"
+    email_body_base += "Thank you for your vote(s) for the event: " + eventTitle + ". This has been securely encrypted "
+    email_body_base += "and anonymously stored in our system.\n\n"
+    email_body_base += "For your reference, the identifier for your selected ballot is:\n"
+    email_body_base += ballotHandle
+    email_body_base += get_email_sign_off()
+
+    voter.send_email(email_subject, email_body_base)
+
+
 '''
     Updates the EID of an event to contain 2 event IDs: a human readable one (hr) and a crypto one (GP from param())
 '''

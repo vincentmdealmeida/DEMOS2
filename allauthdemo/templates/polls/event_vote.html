@@ -34,8 +34,6 @@
             {% endif %}
         </span>
         <br/>
-        <span><strong>Number of polls for this event:</strong> {{ poll_count }}</span>
-        <br/>
         <br/>
         <span><strong>Instructions:</strong>
             You will be shown each poll for this event one by one where you will need to make a selection for the current
@@ -61,26 +59,21 @@
          <div class="panel panel-default">
            <div class="panel-heading"><strong>Options</strong></div>
            <div class="panel panel-body">
-             {% comment %}<select class="radio-inline select form-control" id="poll-options" name="options">
-                {% load custom_filters_tags %}
-                <option value="{{ -1|get_ballot_value:object.options.all.count }}">Please Select...</option>
-               {% for option in object.options.all %}
-                 <option value="{{forloop.counter|get_ballot_value:object.options.all.count}}">{{ option.choice_text }}</option>
-               {% endfor %}
-             </select>{% endcomment %}
              {% for option in object.options.all %}
                  <div class="checkbox">
                     {% load custom_filters_tags %}
-                    <label><input type="checkbox" value="{{forloop.counter|get_ballot_value:object.options.all.count}}">{{ option.choice_text }}</label>
+                    <label id="{{forloop.counter|get_ballot_value:object.options.all.count}}">
+                        <input type="checkbox" value="{{forloop.counter|get_ballot_value:object.options.all.count}}">{{ option.choice_text }}
+                    </label>
                  </div>
              {% endfor %}
              <hr/>
             <div id="ballot-gen-progress-area">
-                <button id="gen-ballots-btn" class="btn btn-primary">Generate Ballots</button>
+                <button id="gen-ballots-btn" class="btn btn-primary">Begin Voting</button>
                 <!-- Progress bar which is used during encryption -->
-                <h4 id="progress-bar-description" class="hidden">Generating Ballots...</h4>
+                <h4 id="progress-bar-description" class="hidden">Generating 2 Digital Ballots. Please wait...</h4>
                 <div id="progress-bar-container" class="progress hidden">
-                  <div id="progress-bar" class="progress-bar" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" style="width: 0%;">
+                  <div id="progress-bar" class="progress-bar progress-bar-striped" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" style="width: 0%;">
                     <span class="sr-only">70% Complete</span>
                   </div>
                 </div>
@@ -124,8 +117,11 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button id="cancelVoteBtn" type="button" class="btn btn-danger" data-dismiss="modal">Cancel</button>
+                    <button id="nextDialogBtn" type="button" class="btn btn-primary">Next</button>
+                    <button id="cancelDialogBtn" type="button" class="btn btn-danger" data-dismiss="modal">Cancel</button>
                     <button id="closeDialogBtn" type="button" class="btn btn-primary hidden" data-dismiss="modal">Close</button>
+                    <button id="startOverDialogBtn" type="button" class="btn btn-danger hidden" data-dismiss="modal">Start Over</button>
+                    <button id="submitDialogBtn" type="button" class="btn btn-success hidden">Submit</button>
                 </div>
               </div>
 
