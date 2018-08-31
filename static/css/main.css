@@ -209,3 +209,29 @@ input[type="file"] {
   width: 54%;
   margin: 0 auto;
 }
+
+img[src^="data"] {
+  width: 45%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.containerMarginTop {
+  margin-top: 1em;
+}
+
+.skDIV {
+  width: 75%;
+  margin: 0 auto;
+  height: 3em;
+  background-color: darkslategrey;
+  color: white;
+  font-weight: bold;
+}
+
+.skDIV > p {
+  text-align: center;
+  height: 3em;
+  vertical-align: middle;
+  line-height: 2.9em;
+}

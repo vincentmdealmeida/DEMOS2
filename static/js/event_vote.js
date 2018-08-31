@@ -1,4 +1,11 @@
 var dialogOpen = false;
+var DIALOG_BTN_STATES = {
+    STEP_1: 1,
+    STEP_2: 2,
+    STEP_3: 3,
+    VOTE_SUCCESS: 4,
+    VOTE_ERROR: 5
+};
 
 function showDialogWithText(titleTxt, bodyTxt) {
     var modalDialog = $('#modalDialog');
@@ -10,11 +17,52 @@ function showDialogWithText(titleTxt, bodyTxt) {
     var p = document.createElement("p");
     p.innerHTML = bodyTxt;
     body.empty();
-    body.append( p );
+    body.append(p);
 
-    if(!dialogOpen) {
+    if (!dialogOpen) {
         modalDialog.modal('toggle');
         dialogOpen = true;
+    }
+}
+
+function updateDialogButtons(state) {
+    // Trigger the btn selectors once here
+    let nextDialogBtn = $('#nextDialogBtn');
+    let cancelDialogBtn = $('#cancelDialogBtn');
+    let closeDialogBtn = $('#closeDialogBtn');
+    let startOverDialogBtn = $('#startOverDialogBtn');
+    let submitDialogBtn = $('#submitDialogBtn');
+
+    switch(state) {
+        case DIALOG_BTN_STATES.STEP_1:
+            nextDialogBtn.removeClass("hidden");
+            cancelDialogBtn.removeClass("hidden");
+            closeDialogBtn.addClass("hidden");
+            startOverDialogBtn.addClass("hidden");
+            submitDialogBtn.addClass("hidden");
+            break;
+        case DIALOG_BTN_STATES.STEP_2:
+            nextDialogBtn.addClass("hidden");
+            cancelDialogBtn.removeClass("hidden");
+            closeDialogBtn.addClass("hidden");
+            startOverDialogBtn.addClass("hidden");
+            submitDialogBtn.addClass("hidden");
+            break;
+        case DIALOG_BTN_STATES.STEP_3:
+            nextDialogBtn.addClass("hidden");
+            cancelDialogBtn.addClass("hidden");
+            closeDialogBtn.addClass("hidden");
+            startOverDialogBtn.removeClass("hidden");
+            submitDialogBtn.removeClass("hidden");
+            break;
+        case DIALOG_BTN_STATES.VOTE_SUCCESS:
+        case DIALOG_BTN_STATES.VOTE_ERROR:
+            nextDialogBtn.addClass("hidden");
+            cancelDialogBtn.addClass("hidden");
+            closeDialogBtn.removeClass("hidden");
+            startOverDialogBtn.addClass("hidden");
+            submitDialogBtn.addClass("hidden");
+            break;
     }
 }
 
@@ -65,10 +113,6 @@ function isVotingInputValid() {
         valid = false;
     }
 
-    if(selectedCount < MAX_SELECTIONS) {
-        valid = false;
-    }
-
     // This will highlight when people haven't selected enough options
 
     if(!valid) {
@@ -86,6 +130,7 @@ function isVotingInputValid() {
         let titleTxt = 'Voting Error';
 
         showDialogWithText(titleTxt, errText);
+        updateDialogButtons(DIALOG_BTN_STATES.VOTE_ERROR);
         return;
     }
 
@@ -259,6 +304,18 @@ function SHA256Hash(bytes, toStr) {
 }
 
 function generateBallots() {
+    // Get the user's selected option
+    let inputs = $("label input[type=checkbox]");
+    let selectedOption = "";
+    inputs.each(function() {
+        let input = $(this);
+
+        if(input.prop('checked')) {
+            selectedOption = input.val();
+            selectedOption = document.getElementById(selectedOption).innerText;
+        }
+    });
+
     // Generate Ballot A and Ballot B to be displayed to the user
     // This fn starts the process
     var ballotA = generateBallot();
@@ -271,11 +328,12 @@ function generateBallots() {
         var ballotB = generateBallot();
         progressBar.setAttribute("style", "width: 100%;");
 
-        showFirstQRCode(ballotA, ballotB);
+        showFirstQRCode(ballotA, ballotB, selectedOption);
     }, 150);
 }
 
-function showFirstQRCode(ballotA, ballotB) {
+// Called in stage 1 of 3 in the voting process
+function showFirstQRCode(ballotA, ballotB, selectedOption) {
     var ballots = new Array(ballotA, ballotB);
     var ballotHashes = new Array(2);
 
@@ -287,14 +345,19 @@ function showFirstQRCode(ballotA, ballotB) {
     var modalDialog = $('#modalDialog');
     var title = modalDialog.find('.modal-title');
     var body = modalDialog.find('.modal-body');
-    var footer = modalDialog.find('.modal-footer');
 
     body.empty();
-    title.text('Please Scan this QR Code');
+    title.text('Step 1 of 3: Link Your Vote');
 
+    let pleaseScanP = document.createElement('p');
+    pleaseScanP.innerHTML = "Please scan the following QR code from your DEMOS 2 mobile application:";
+
+    let QRDiv = document.createElement('div');
     var QRCodeImg = document.createElement('img');
     QRCodeImg.setAttribute('class', 'QR-code');
+    QRCodeImg.setAttribute('id', "qr-img");
     new QRCode(QRCodeImg, ballotHashes[0] + ';' + ballotHashes[1]);
+    QRDiv.append(QRCodeImg);
 
     // ----------------------------------------------
 
@@ -315,37 +378,31 @@ function showFirstQRCode(ballotA, ballotB) {
 
     // -----------------------------------------------
 
-    body.append(QRCodeImg);
+    body.append(pleaseScanP);
+    body.append(QRDiv);
     body.append(hashGroupDiv);
 
-    var closeButton = $('close-button');
-    closeButton.removeClass('btn-success');
-    closeButton.addClass('btn-danger');
-    closeButton.text("Close without submitting vote");
+    // Prepare the appropriate dialog buttons
+    updateDialogButtons(DIALOG_BTN_STATES.STEP_1);
 
-    var nextButton = document.createElement('button');
-    nextButton.setAttribute('type', 'button');
-    nextButton.setAttribute('id', 'next-button');
-    nextButton.setAttribute('class', 'btn btn-default');
-    nextButton.innerHTML = "Next";
+    if(!dialogOpen) {
+        modalDialog.modal('toggle');
+        dialogOpen = true;
+    }
 
-    footer.prepend(nextButton);
-
-    modalDialog.modal('show');
-
-    $('#next-button').click(function(e) {
-        showBallotChoiceDialog(ballots);
+    $('#nextDialogBtn').click(function(e) {
+        showBallotChoiceDialog(ballots, ballotHashes, selectedOption, modalDialog);
     });
 }
 
-function showBallotChoiceDialog(ballots) {
+// Called in stage 2 of 3 in the voting process
+function showBallotChoiceDialog(ballots, ballotHashes, selectedOption, dialog) {
     // Display the ballot choice dialog
-    var modalDialog = $('#modalDialog');
-    var title = modalDialog.find('.modal-title');
-    var body = modalDialog.find('.modal-body');
+    var title = dialog.find('.modal-title');
+    var body = dialog.find('.modal-body');
 
     body.empty();
-    title.text('Please Select a Ballot');
+    title.text('Step 2 of 3: Select a Ballot');
 
     // Generate the body of the dialog which consists of a button for A and for B
     var choiceGroupDiv = document.createElement('div');
@@ -363,21 +420,104 @@ function showBallotChoiceDialog(ballots) {
     btnChoiceB.innerHTML = 'B';
     choiceGroupDiv.append(btnChoiceB);
 
-    body.append(choiceGroupDiv);
+    // ----------------------------------------------
 
-    modalDialog.modal('show');
+    var hashGroupDiv = document.createElement('div');
+    var br = document.createElement('br');
+    hashGroupDiv.append( br );
+
+    var hashA = document.createElement("span");
+    hashA.innerHTML = "Hash A: " + ballotHashes[0];
+    hashGroupDiv.append( hashA );
+
+    var br2 = document.createElement('br');
+    hashGroupDiv.append( br2 );
+
+    var hashB = document.createElement("span");
+    hashB.innerHTML = "Hash B: " + ballotHashes[1];
+    hashGroupDiv.append( hashB );
+
+    // -----------------------------------------------
+
+    body.append(choiceGroupDiv);
+    body.append(hashGroupDiv);
 
     // Register callback functions for the selection of either A or B
     $('#choice-A').click(function(e) {
-        sendBallotsToServer(ballots[0], ballots[1]);
+        showSelectionConfirmationDialog("A", ballots[0], ballotHashes[0], ballots[1], selectedOption, dialog);
     });
 
     $('#choice-B').click(function(e) {
-        sendBallotsToServer(ballots[1], ballots[0]);
+        showSelectionConfirmationDialog("B", ballots[1], ballotHashes[1], ballots[0], selectedOption, dialog);
     });
+
+    updateDialogButtons(DIALOG_BTN_STATES.STEP_2);
+
+    if(!dialogOpen) {
+        modalDialog.modal('toggle');
+        dialogOpen = true;
+    }
 }
 
-function sendBallotsToServer(selection, alt) {
+// Called in stage 3 of 3 in the voting process
+function showSelectionConfirmationDialog(selection, selectedBallot, selectedBallotHash,
+                                         otherBallot, selectedOption, dialog) {
+    let title = dialog.find('.modal-title');
+    let body = dialog.find('.modal-body');
+    body.empty();
+
+    title.text("Step 3 of 3: Confirm Ballot Selection");
+
+    // Ballot detail section
+    let selectedInfoSecDiv = document.createElement('div');
+
+    let detailsP = document.createElement('p');
+    detailsP.innerHTML = "Please check the following details are correct: ";
+    selectedInfoSecDiv.append(detailsP);
+
+    let ul = document.createElement('ul');
+
+    let selectedOptionLi = document.createElement('li');
+    selectedOptionLi.innerHTML = "Selected Option: " + selectedOption;
+
+    let ballotSelectionLi = document.createElement('li');
+    ballotSelectionLi.innerHTML = "Selected Ballot: " + selection;
+
+    let ballotHashLi = document.createElement('li');
+    ballotHashLi.innerHTML = "SHA256 Ballot Fingerprint: " + selectedBallotHash;
+
+    ul.append(selectedOptionLi);
+    ul.append(ballotSelectionLi);
+    ul.append(ballotHashLi);
+    selectedInfoSecDiv.append(ul);
+
+    // Instruction section
+    let instructionsP = document.createElement('p');
+    instructionsP.innerHTML = "If you are happy with your selection you can click on the 'Submit' button below to store"
+        + " your vote. Otherwise you can select 'Start Over' to go through the voting process again.";
+    selectedInfoSecDiv.append(instructionsP);
+
+    let additionalInstructionsP = document.createElement('p');
+    additionalInstructionsP.innerHTML = "You can overwrite your vote later by re-visiting this page and voting again.";
+    selectedInfoSecDiv.append(additionalInstructionsP);
+
+    body.append(selectedInfoSecDiv);
+
+    // Update the dialog buttons accordingly
+    updateDialogButtons(DIALOG_BTN_STATES.STEP_3);
+
+    $('#submitDialogBtn').click(function() {
+        // Dispatch the ballot to the server
+        sendBallotsToServer(selection, selectedBallot, otherBallot);
+    });
+
+    if(!dialogOpen) {
+        modalDialog.modal('toggle');
+        dialogOpen = true;
+    }
+}
+
+function sendBallotsToServer(selection, selectedBallot, otherBallot) {
     $.ajaxSetup({
         beforeSend: function(xhr, settings) {
             if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
@@ -416,14 +556,15 @@ function sendBallotsToServer(selection, alt) {
     var pollNum = $('#poll-num').text();
     var ballotID = encodeURIComponent(btoa(JSON.stringify({voterID: voterID, eventID: eventID, pollNum: pollNum})));
 
+    // TODO: Generate a SK rather than using a static one. UUID generated server side and then injected JS side?
     var SK = "temporary";
-    var encAlt = sjcl.encrypt(SK, JSON.stringify(alt));
-    selection = JSON.stringify(selection);
+    var encAlt = sjcl.encrypt(SK, JSON.stringify(otherBallot));
+    let selectedBallotAsStr = JSON.stringify(selectedBallot);
 
     $.ajax({
          type : "POST",
          url : window.location,
-         data : {  handle: ballotID, encBallot: encAlt, ballot: selection },
+         data : {  handle: ballotID, encBallot: encAlt, ballot: selectedBallotAsStr, selection: selection },
          success : function(){
              onAfterBallotSend(ballotID, SK);
          }
@@ -432,40 +573,64 @@ function sendBallotsToServer(selection, alt) {
 
 // Called once the ballot has been sent to the back-end and dialog has closed
 function onAfterBallotSend(ballotID, SK) {
-    let titleText = 'Vote Successfully Received';
-    let bodyText = "Thank you for voting! Your secret key is '"+SK+"'. Make sure to scan this QR code with your phone before closing this window.";
-
-    if(POLL_NUM !== POLL_COUNT) {
-        bodyText += " You can vote on the next poll by closing down this dialog and clicking 'Next Poll'.";
-    }
-
     // With one ballot selected, we can display a QR code of the ballot ID
     var modalDialog = $('#modalDialog');
     var title = modalDialog.find('.modal-title');
     var body = modalDialog.find('.modal-body');
-    title.text(titleText);
     body.empty();
 
-    var p = document.createElement("p");
-    p.innerHTML = bodyText;
-    body.append(p);
+    let titleText = 'Vote Successfully Received';
+    title.text(titleText);
 
-    // Generate the body of the dialog which displays the unselected ballot QR code
+    // Add the first section: Instructions on next steps
+    let instructions1Txt = "Thank you for voting! Please note down the ballot identifier by scanning " +
+        "this QR code using the DEMOS2 mobile application: ";
+
+    var instructions1P = document.createElement("p");
+    instructions1P.innerHTML = instructions1Txt;
+    body.append(instructions1P);
+
+    // Add the second section: QR code that contains the ballot identifier
     var QRCodeImg = document.createElement('img');
     QRCodeImg.setAttribute('class', 'QR-code');
     new QRCode(QRCodeImg, ballotID);
 
     body.append(QRCodeImg);
 
-    var closeButton = $('#close-button');
-    closeButton.removeClass('btn-danger');
-    closeButton.addClass('btn-success');
-    closeButton.text("Close");
-    if(POLL_NUM == POLL_COUNT) {
-        $('#next-button').hide();
+    // Add the third section: instructions on Ballot ID and SK
+    let instructions2Div = document.createElement('div');
+    instructions2Div.setAttribute('class', 'containerMarginTop');
+
+    let instructions2Txt = "You will also be emailed the ballot identifier. However, you will need to note down the following " +
+        "secret in order to later verify your ballot was recorded as cast: ";
+    let instructions2P = document.createElement('p');
+    instructions2P.innerHTML = instructions2Txt;
+    instructions2Div.append(instructions2P);
+    body.append(instructions2Div);
+
+    // Add the fourth section: SK plain text
+    let SKContainerDiv = document.createElement('div');
+    SKContainerDiv.setAttribute("class", "containerMarginTop");
+
+    let SKDiv = document.createElement('div');
+    SKDiv.setAttribute("class", "skDIV");
+
+    let SKP = document.createElement('p');
+    SKP.innerHTML = SK;
+    SKDiv.append(SKP);
+
+    SKContainerDiv.append(SKDiv);
+    body.append(SKContainerDiv);
+
+    // Conditional fifth section: Instructions on how to vote on the next poll for the event
+    if(POLL_NUM !== POLL_COUNT) {
+        let instructions3Txt = "You can vote on the next poll by closing down this dialog and clicking 'Next Poll'.";
+        let instructions3P = document.createElement('p');
+        instructions3P.innerHTML = instructions3Txt;
+        body.append(instructions3P);
     }
 
-    modalDialog.modal('show');
+    updateDialogButtons(DIALOG_BTN_STATES.VOTE_SUCCESS);
 }
 
 $('#modalDialog').on('hide.bs.modal', function (e) {
@@ -474,7 +639,7 @@ $('#modalDialog').on('hide.bs.modal', function (e) {
     if(titleText.indexOf("Received") > -1) {
         // Update page to reflect the fact that a vote has taken place
         location.reload();
-    } else {
+    } else if (titleText.indexOf("Error") === -1) {
         // Reset poll voting to allow user to vote again
         progressBar.setAttribute("style", "width: 0%;");
         $('#gen-ballots-btn').toggleClass("hidden");

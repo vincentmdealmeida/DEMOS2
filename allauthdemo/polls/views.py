@@ -18,6 +18,7 @@ from allauthdemo.auth.models import DemoUser
 
 from .tasks import email_trustees_prep, update_EID, generate_combpk, event_ended, create_ballots
 from .tasks import create_ballots_for_poll, email_voters_vote_url, combine_decryptions_and_tally, combine_encrypted_votes
+from .tasks import email_voting_success
 
 from .utils.EventModelAdaptor import EventModelAdaptor
 
@@ -220,7 +221,9 @@ def event_vote(request, event_id, poll_id):
         ballot.selection = selection
         ballot.save()
 
-        combine_encrypted_votes.delay(email_key[0].user, poll)
+        voter = email_key[0].user
+        combine_encrypted_votes.delay(voter, poll)
+        email_voting_success.delay(voter, handle_json, event.title)
 
         if next_poll_uuid:
             return HttpResponseRedirect(reverse('polls:event-vote', kwargs={'event_id': event.uuid,
