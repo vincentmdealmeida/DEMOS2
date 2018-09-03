@@ -1,9 +1,37 @@
+// -------------- Global vars --------------------
+var filesHandleSK = document.getElementById('files_sk_upload');
+var CSRF = $( "input[name='csrfmiddlewaretoken']" ).val();
+
+// -------------- Helper fns --------------------
 //SK checking algorithm - If PK and SK matches, it returns True; otherwise, it returns false.
 // Written by Bingsheng Zhang
 function skCheck(ctx, params, SK, PK) {
     var D = ctx.PAIR.G1mul(params.g1, SK);
     return D.equals(PK)
 }
+
+function csrfSafeMethod(method) {
+    // these HTTP methods do not require CSRF protection
+    return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+}
+
+function showDialog(titleTxt, bodyTxt) {
+    var modalDialog = $('#modalDialog');
+    var title = modalDialog.find('.modal-title');
+    var body = modalDialog.find('.modal-body');
+
+    title.text(titleTxt);
+    var bodyText = bodyTxt;
+
+    var p = document.createElement("p");
+    p.innerHTML = bodyText;
+    body.empty();
+    body.append( p );
+
+    modalDialog.modal('show');
+}
+
+// -----------------------------------------------
 
 function validateSKFromString(SKStr) {
     // Re-create the SK from the string byte definition
@@ -38,20 +66,44 @@ function validateSKFromString(SKStr) {
     return skCheck(ctx, params, sk, pk);
 }
 
-function showDialog(titleTxt, bodyTxt) {
-    var modalDialog = $('#modalDialog');
-    var title = modalDialog.find('.modal-title');
-    var body = modalDialog.find('.modal-body');
+function decryptSubmitCiphers() {
+    var skString = $('#secret-key').val();
 
-    title.text(titleTxt);
-    var bodyText = bodyTxt;
+    if (!skString) {
+        showDialog('Error', 'You haven\'t supplied your secret key. Please go back and upload this from file.');
+    }
+    else {
+        // Rebuild the trustee's secret key
+        var ctx = new CTX("BN254CX");
+        var skBytes = skString.split(",");
+        var sk = new ctx.BIG.fromBytes(skBytes);
 
-    var p = document.createElement("p");
-    p.innerHTML = bodyText;
-    body.empty();
-    body.append( p );
+        var inputs = $("form input[type=text]");
 
-    modalDialog.modal('show');
+        inputs.each(function() { //for each ciphertext to decrypt
+          let input = $(this);
+          console.log(input.attr('name'));
+
+          var ciphertext = {
+              C1: null,
+              C2: null
+          };
+
+          var temp = JSON.parse(input.val());
+          var c1Bytes = getBytes(temp.C1.split(','));
+          ciphertext.C1 = new ctx.ECP.fromBytes(c1Bytes);
+
+          var c2Bytes = getBytes(temp.C2.split(','));
+          ciphertext.C2 = new ctx.ECP.fromBytes(c2Bytes);
+
+          // Perform partial decryption where the method returns an object containing an ECP()
+          var partial = partDec(sk, ciphertext);
+
+          var bytes = [];
+          partial.D.toBytes(bytes);
+          input.val(bytes.toString());
+        });
+    }
 }
 
 function processFileSKChange(event) {
@@ -84,8 +136,6 @@ function processFileSKChange(event) {
         reader.readAsText(files[0]);
     }
 }
-
-var filesHandleSK = document.getElementById('files_sk_upload');
 
 if(filesHandleSK) {
     filesHandleSK.addEventListener('change', processFileSKChange, false);

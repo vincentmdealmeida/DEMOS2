@@ -16,7 +16,7 @@
   <h2>Trustee Event Decryption for Event '{{ event.title }}'</h2>
     <hr/>
   <div class="panel panel-default">
-      <div class="panel-heading"><strong>Submit your Secret Key as '{{ user_email }}'</strong></div>
+      <div class="panel-heading"><strong>Upload your Secret Key as '{{ user_email }}'</strong></div>
       <div class="panel panel-body">
           <input id="secret-key" name="secret-key" class="textinput textInput form-control" type="text" disabled/>
           <div class="alert alert-info" role="alert" style="margin-top: 0.75em;">
@@ -30,7 +30,7 @@
           <input type="file" id="files_sk_upload" name="file" class="btn-info">
       </div>
       <br/>
-      <div class="panel-heading"><strong>Ciphers</strong></div>
+      <div class="panel-heading"><strong>Encrypted Event Data</strong></div>
       <div class="panel panel-body">
           <form id="cipher-form" method="POST">
               {% csrf_token %}
@@ -48,25 +48,26 @@
                   <br/>
               {% endfor %}
               <button id="decrypt-btn"
-                      onclick="demosEncrypt.decryptSubmitCiphers()"
+
+                      onclick="decryptSubmitCiphers()"
                       class="btn btn-success">
-                      Decrypt & Submit</button>
+                      Send Partial Decryptions</button>
           </form>
       </div>
   </div>
 </div>
 
 <!-- Information Dialog called upon request -->
-<div class="modal fade" id="modalDialog" role="dialog">
-    <div class="modal-dialog">
+<div class="modal fade" id="modalDialog" role="dialog" tabindex="-1" data-backdrop="static">
+    <div class="modal-dialog" role="document">
 
       <!-- Dialog content-->
       <div class="modal-content">
         <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal">&times;</button>
-            <h4 class="modal-title" style="text-align: center"><strong>Thank You</strong></h4>
+            <h4 class="modal-title" style="text-align: center"><strong>Partial Decryption Successfully Received</strong></h4>
         </div>
         <div class="modal-body">
+            <p>Thank you! You can now close down this page.</p>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
