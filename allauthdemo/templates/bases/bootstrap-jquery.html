@@ -76,39 +76,7 @@
 
   //new function
   demosEncrypt.decryptSubmitCiphers = function() {
-    var skString = $('#secret-key').val();
-    if (!skString) {
-      alert("Please enter your secret key");
-    }
-    else {
-      //rebuild our secret key
-      var ctx = new CTX("BN254CX");
-      var skBytes = skString.split(",");
-      var sk = new ctx.BIG.fromBytes(skBytes);
 
-      var inputs = $("form input[type=text]");
-
-      inputs.each(function() { //for each ciphertext to decrypt
-        var ciphertext = {
-          C1: null,
-          C2: null
-        };
-
-        var temp = JSON.parse($(this).val());
-        var c1Bytes = getBytes(temp.C1.split(','));
-        ciphertext.C1 = new ctx.ECP.fromBytes(c1Bytes);
-
-        var c2Bytes = getBytes(temp.C2.split(','));
-        ciphertext.C2 = new ctx.ECP.fromBytes(c2Bytes);
-
-        // Perform partial decryption where the method returns an object containing an ECP()
-        var partial = partDec(sk, ciphertext);
-        
-        var bytes = [];
-        partial.D.toBytes(bytes);
-        $(this).val(bytes.toString());//submit in byte array form
-      });
-    }
   };
 
   //new function

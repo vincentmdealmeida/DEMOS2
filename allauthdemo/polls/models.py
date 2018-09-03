@@ -206,6 +206,7 @@ class Ballot(models.Model):
     voter = models.ForeignKey(EmailUser, on_delete=models.CASCADE, related_name="ballots")
     poll = models.ForeignKey(Poll, on_delete=models.CASCADE, related_name="ballots")
     selection = models.CharField(max_length=1)
+    json_str = models.CharField(max_length=10240)
     cast = models.BooleanField(default=False)
 
 

@@ -18,7 +18,7 @@ from allauthdemo.auth.models import DemoUser
 
 from .tasks import email_trustees_prep, update_EID, generate_combpk, event_ended, create_ballots
 from .tasks import create_ballots_for_poll, email_voters_vote_url, combine_decryptions_and_tally, combine_encrypted_votes
-from .tasks import email_voting_success
+from .tasks import email_voting_success, email_organisers_next_steps
 
 from .utils.EventModelAdaptor import EventModelAdaptor
 
@@ -187,7 +187,8 @@ def event_vote(request, event_id, poll_id):
         cant_vote_reason = "The event either isn't ready for voting or it has expired and therefore you cannot vote."
 
     if request.method == "POST":
-        ballot_json = json.loads(request.POST.get('ballot'))
+        ballot_str = request.POST.get('ballot')
+        ballot_json = json.loads(ballot_str)
         selection = request.POST.get('selection')
         encrypted_votes_json = ballot_json['encryptedVotes']
 
@@ -219,6 +220,7 @@ def event_vote(request, event_id, poll_id):
 
         ballot.cast = True
         ballot.selection = selection
+        ballot.json_str = ballot_str
         ballot.save()
 
         voter = email_key[0].user
@@ -270,6 +272,7 @@ def event_trustee_setup(request, event_id):
                         create_ballots.delay(event)
                         generate_combpk.delay(event)
                         email_voters_vote_url.delay(event.voters.all(), event)
+                        email_organisers_next_steps.delay(event)
 
                     success_msg = 'You have successfully submitted your public key for this event!'
                     messages.add_message(request, messages.SUCCESS, success_msg)
@@ -365,8 +368,14 @@ def event_trustee_decrypt(request, event_id):
                                                                text=part_dec)
 
                 if event.all_part_decs_received():
-                    # TODO: Combine partial decryptions and gen results
+                    # Decrypt the result once all partial decryptions have been received
+                    # This will email all organisers once the results are ready
                     combine_decryptions_and_tally.delay(event)
+                else:
+                    # TODO: Get how many trustees have submitted a partial decryption
+                    # TODO: Then get how many are left to submit their partial decryptions
+                    # TODO: Then email the list of organisers to update them with this information
+                    str("")
 
                 messages.add_message(request, messages.SUCCESS, 'Your partial decryptions have been successfully submitted')
                 return HttpResponseRedirect(reverse("user_home"))

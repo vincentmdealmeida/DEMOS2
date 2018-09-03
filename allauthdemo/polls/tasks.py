@@ -68,6 +68,26 @@ def get_email_sign_off():
     return sign_off
 
 
+def email_e_results_ready(event):
+    event_title = event.title
+    email_subject = "Event Results for '" + event_title + "' Have Been Decrypted"
+
+    # Construct the email body. This can be later replaced by a HTML email.
+    email_body = str("")
+    email_body += "Dear Event Organiser,\n\n"
+    email_body += "This email is to inform you that all of the partial decryptions for the event '" + event_title + \
+                  "' have been supplied. These have been used to decrypt the results which are now available.\n\n"
+    email_body += "As an organiser, the event results can be found at the following URL:\n\n"
+    email_body += "http://" + settings.DOMAIN + "/event/" + str(event.pk) + "/results/"
+    email_body += get_email_sign_off()
+
+    # Get all of the organisers for the event and send them an email
+    organisers = event.users_organisers.all()
+
+    for organiser in organisers:
+        organiser.email_user(email_subject, email_body)
+
+
 '''
     Combines all of the voter ballots for a poll option into a single 'CombinedBallot'
 '''
@@ -99,6 +119,11 @@ def combine_ballots(polls):
 
             combined_cipher = add_ciphers(ciphers)
 
+            # If a combined ballot already exists, clear it
+            if CombinedBallot.objects.filter(poll=poll, option=option).exists():
+                CombinedBallot.objects.filter(poll=poll, option=option).delete()
+
+            # Create a combined ballot for this option in the poll
             CombinedBallot.objects.create(poll=poll,
                                           option=option,
                                           cipher_text_c1=combined_cipher['C1'],
@@ -178,6 +203,30 @@ def email_trustees_prep(trustees, event):
 
         trustee.send_email(email_subject, email_body)
 
+
+'''
+    Task triggered when all trustees have supplied their partial public keys and the event has been prepared
+'''
+@task()
+def email_organisers_next_steps(event):
+    event_title = event.title
+    email_subject = "Event '" + event_title + "' Successfully Prepared by All Trustees"
+
+    email_body = str("")
+    email_body += "Dear Event Organiser,\n\n"
+    email_body += "This email is to inform you that all trustees have supplied their public keys for the event '" \
+                  + event_title + "'. The event is therefore prepared and ready to accept votes when voting opens.\n\n"
+    email_body += "Once voting has ended, you need to visit the following URL to begin the decryption process:\n\n"
+    email_body += "http://" + settings.DOMAIN + "/event/" + str(event.pk) + "/\n\n"
+    email_body += "Once you've accessed the page, simply hit the 'End' button to email all trustees to ask for their " \
+                  "partial decryptions for all polls for this event."
+    email_body += get_email_sign_off()
+
+    # Get the list of organisers that need emailing and email them
+    organisers = event.users_organisers.all()
+
+    for organiser in organisers:
+        organiser.email_user(email_subject, email_body)
 
 '''
     Emails a URL containing an access key for all of the voters for an event 
@@ -316,4 +365,7 @@ def combine_decryptions_and_tally(event):
 
         poll.result_json = result
         poll.save()
+
+    # Email the list of organisers to inform them that the results for this event are ready
+    email_e_results_ready(event)
 
