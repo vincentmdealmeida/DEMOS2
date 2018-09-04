@@ -108,11 +108,21 @@
     keypair.PK.toBytes(PKbytes);
     keypair.SK.toBytes(SKbytes);
 
-    $('input#public-key').val(PKbytes.toString());
-    $('input#secret-key').val(SKbytes.toString());
+    var PKB64Encoded = "";
+    for(let i = 0; i < PKbytes.length; i++) {
+        PKB64Encoded += btoa(PKbytes[i]);
+    }
+
+    var SKB64Encoded = "";
+    for(let j = 0; j < SKbytes.length; j++) {
+        SKB64Encoded += btoa(SKbytes[j]);
+    }
+
+    $('input#public-key').val(PKB64Encoded);
+    $('input#secret-key').val(SKB64Encoded);
 
     //mostly code from before here
-    var blob = new Blob([SKbytes.toString()], {type : 'text/plain'});
+    var blob = new Blob([SKB64Encoded], {type : 'text/plain'});
 
     var dlBtn = $('a#download-btn');
     var url = URL.createObjectURL(blob);

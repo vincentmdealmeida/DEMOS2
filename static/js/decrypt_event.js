@@ -15,6 +15,14 @@ function csrfSafeMethod(method) {
     return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
 }
 
+function getKeyBytes(key, byteArray) {
+    for(let i = 0; i < key.length; i += 4) {
+        let B64EncodedByte = key.substring(i, i + 4);
+
+        byteArray.push(atob(B64EncodedByte));
+    }
+}
+
 function showDialog(titleTxt, bodyTxt) {
     var modalDialog = $('#modalDialog');
     var title = modalDialog.find('.modal-title');
@@ -37,7 +45,14 @@ function validateSKFromString(SKStr) {
     // Re-create the SK from the string byte definition
     let ctx = new CTX("BN254CX");
 
-    let skBytes = SKStr.split(",");
+    // Check that the length is valid, otherwise display an error
+    if(!(SKStr.length % 4 === 0)) {
+        showDialog('Error',
+            'The length of the supplied secret key appears to be invalid. Check and try again.');
+    }
+
+    let skBytes = [];
+    getKeyBytes(SKStr, skBytes);
     let sk = new ctx.BIG.fromBytes(skBytes);
 
     // Re-create the params
@@ -56,10 +71,8 @@ function validateSKFromString(SKStr) {
     };
 
     // Re-create the trustee PK from the string byte definition
-    let pkBytes = trustee_pk.split(',').map(function(byteStr) {
-        return parseInt(byteStr)
-    });
-
+    let pkBytes = [];
+    getKeyBytes(trustee_pk, pkBytes);
     let pk = new ctx.ECP.fromBytes(pkBytes);
 
     // Check that the SK supplies generates the PK we know about
@@ -75,7 +88,8 @@ function decryptSubmitCiphers() {
     else {
         // Rebuild the trustee's secret key
         var ctx = new CTX("BN254CX");
-        var skBytes = skString.split(",");
+        var skBytes = [];
+        getKeyBytes(skString, skBytes);
         var sk = new ctx.BIG.fromBytes(skBytes);
 
         var inputs = $("form input[type=text]");
