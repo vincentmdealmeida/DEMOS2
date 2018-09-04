@@ -10,6 +10,7 @@ Dependencies can be found in 'package.json' and installed using 'npm install'
 var port = 8080;
 
 var Buffer = require('buffer').Buffer;
+var atob = require("atob");
 var CTX = require('milagro-crypto-js');
 
 var express = require('express');
@@ -65,6 +66,13 @@ app.get('/combpk', function(request, response){
 
 });
 
+function getKeyBytes(key, byteArray) {
+    for(let i = 0; i < key.length; i += 4) {
+        let B64EncodedByte = key.substring(i, i + 4);
+
+        byteArray.push(atob(B64EncodedByte));
+    }
+}
 
 //byte array version
 app.post('/cmpkstring', function(request, response){
@@ -77,19 +85,25 @@ app.post('/cmpkstring', function(request, response){
     if(partials.length > 1)//if we're submitting more than one key
     {
         console.log('Combining ' + partials.length + " public keys into one...");
-        for (var i = partials.length - 1; i >= 0; i--) {
-            console.log('PK' + i + ':    ' + partials[i]);
-            var bytes = Buffer.from(partials[i].split(','), 'hex');
-            var pk = new ctx.ECP.fromBytes(bytes);
-            parsed.push(pk);
+        for (let i = partials.length - 1; i >= 0; i--) {
+            console.log('PK' + i + ':   ' + partials[i]);
+
+            let rawBytes = [];
+            getKeyBytes(partials[i], rawBytes);
+
+            parsed.push(new ctx.ECP.fromBytes(Buffer.from(rawBytes, 'hex')));
         }
     }
     else if(partials.length === 1)
     {
         console.log("Combining just one public key...");
-        var bytes = Buffer.from(partials[0].split(','), 'hex');
-        var pk = new ctx.ECP.fromBytes(bytes);
-        parsed.push(pk);
+        let PKStr = partials[0];
+        console.log("PK:    " + PKStr);
+
+        let rawBytes = [];
+        getKeyBytes(PKStr, rawBytes);
+
+        parsed.push(new ctx.ECP.fromBytes(Buffer.from(rawBytes, 'hex')));
     }
 	
 	response.json(combine_pks(parsed));

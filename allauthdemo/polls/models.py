@@ -145,7 +145,7 @@ class Event(models.Model):
 class TrusteeKey(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="trustee_keys")
     user = models.ForeignKey(EmailUser, on_delete=models.CASCADE, related_name="trustee_keys")
-    key = models.CharField(max_length=255, unique=True)
+    key = models.CharField(max_length=260)
 
 
 class AccessKey(models.Model):
