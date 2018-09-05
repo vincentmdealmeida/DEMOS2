@@ -234,11 +234,11 @@ app.post('/get_tally', function(request, response){
     response.send("" + getCipherVal(params, partials, cipher, VOTERS_COUNT).M);
 });
 
-var server = app.listen(port, function(){
+var server = app.listen(port, 'localhost', function(){
 	var host = server.address().address;
 	var appPort = server.address().port;
 
-	console.log('Server listening on ' + host + ':'+ port);
+	console.log('Server listening on ' + host + ' on port '+ appPort);
 });
 
 

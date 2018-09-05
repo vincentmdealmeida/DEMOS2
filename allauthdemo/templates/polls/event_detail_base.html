@@ -12,7 +12,7 @@
             <div class="col-xs-7 col-sm-9 col-md-9">
                 <h2>Event: {{object.title}}</h2>
             </div>
-            <!-- Edit Button -->
+            <!-- Action Buttons -->
             <div class="col-xs-5 col-sm-3 col-md-3 marginTopEditButton">
                 {% if object.has_received_votes and object.ended == False %}
                     <a href="{% url 'polls:end-event' event.uuid %}" class="btn btn-danger" style="float: right;">

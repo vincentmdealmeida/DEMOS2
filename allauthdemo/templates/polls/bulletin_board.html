@@ -1,0 +1,51 @@
+{% extends "bases/bootstrap-with-nav.html" %}
+{% load staticfiles %}
+{% load bootstrap3 %}
+
+{% block content %}
+    <div class="container">
+        <div id="pageHeader">
+            <!-- Heading -->
+            <h2>Bulletin Boards for the Event: {{event.title}}</h2>
+            <!-- Action Buttons -->
+            {% comment %}<div class="col-xs-5 col-sm-3 col-md-3 marginTopEditButton">
+                <a href="{% url 'polls:vote_audit' %}" class="btn btn-primary" style="float: right; margin-right: 0.4em;">
+                    <span class="glyphicon glyphicon-qrcode"></span> Audit Ballot
+                </a>
+            </div>{% endcomment %}
+        </div>
+        <div id="pageBody">
+            <br>
+            <p>This page groups together all of the bulletin boards for each poll of the event. Within each board you
+            can audit your own votes.</p>
+            <br>
+            <div class="form-group">
+               <table id="bbs-table" class="table table-hover">
+                  <thead>
+                    <tr>
+                        <th class="text-center">Poll</th>
+                        <th class="text-center">No. Votes</th>
+                        <th class="text-center">No. Voters</th>
+                        <th class="text-center">Turnout</th>
+                        <th class="text-center">View</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                        {% for poll in event.polls.all %}
+                           <tr>
+                               <td class="text-center">{{ poll.question_text }}</td>
+                               <td class="text-center">{{ poll.total_votes }}</td>
+                               <td class="text-center">TODO</td>
+                               <td class="text-center">TODO</td>
+                               <td class="text-center">
+                                   <a href="{% url 'polls:vote_audit' %}">View</a>
+                               </td>
+                           </tr>
+                        {% endfor %}
+                  </tbody>
+               </table>
+            </div>
+
+        </div>
+    </div>
+{% endblock %}

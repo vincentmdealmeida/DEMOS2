@@ -584,7 +584,7 @@ function onAfterBallotSend(ballotID, SK) {
 
     // Add the first section: Instructions on next steps
     let instructions1Txt = "Thank you for voting! Please note down the ballot identifier by scanning " +
-        "this QR code using the DEMOS2 mobile application: ";
+        "this QR code using the DEMOS 2 mobile application: ";
 
     var instructions1P = document.createElement("p");
     instructions1P.innerHTML = instructions1Txt;

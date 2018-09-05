@@ -243,7 +243,7 @@ def email_voters_vote_url(voters, event):
     email_body_base += "You have been enrolled as a voter onto the event: " + event.title + ".\n\nYou can vote between the following dates and times:\n"
     email_body_base += "Start: " + event.start_time_formatted_utc() + "\n"
     email_body_base += "End:  " + event.end_time_formatted_utc() + "\n\n"
-    email_body_base += "Please visit the following URL in order to vote on the event where further instructions can be found on the page:\n\n"
+    email_body_base += "Please visit the following URL in order to vote on the event - further instructions can be found on the page:\n\n"
     url_base = "http://" + settings.DOMAIN + "/event/" + str(event.pk) + "/poll/" + str(event.polls.all()[0].uuid) + "/vote/?key="
     email_body_base += url_base
 
@@ -256,6 +256,9 @@ def email_voters_vote_url(voters, event):
 
         # Update the email body to incl the access key as well as the duration information
         email_body = str(email_body_base + key)
+        email_body += "\n\nEvery voter gets assigned a voter alias which is used to anonymize your vote. "
+        email_body += "Your alias is as follows:\n\n"
+        email_body += str(voter.alias)
         email_body += sign_off
 
         voter.send_email(email_subject, email_body)
@@ -270,8 +273,10 @@ def email_voting_success(voter, ballotHandle, eventTitle):
     email_body_base += "Dear Voter,\n\n"
     email_body_base += "Thank you for your vote(s) for the event: " + eventTitle + ". This has been securely encrypted "
     email_body_base += "and anonymously stored in our system.\n\n"
-    email_body_base += "For your reference, the identifier for your selected ballot is:\n"
+    email_body_base += "For your reference, the identifier for your selected ballot is:\n\n"
     email_body_base += ballotHandle
+    email_body_base += "\n\nAs a reminder your voter alias (which is used to anonymize your vote on the bulletin board) is as follows:\n\n"
+    email_body_base += str(voter.alias)
     email_body_base += get_email_sign_off()
 
     voter.send_email(email_subject, email_body_base)
@@ -328,7 +333,10 @@ def combine_decryptions_and_tally(event):
 
         options = poll.options.all()
         opt_count = len(options)
+
+        total_votes = 0
         result += "\"options\": ["
+
         for j in range(opt_count):
             option = options[j]
 
@@ -353,6 +361,7 @@ def combine_decryptions_and_tally(event):
             # Get the vote tally for this option and add it to the results
             voters_count = event.voters.all().count()
             votes = get_tally(ballot_cipher, part_decs_text, event.EID, voters_count)
+            total_votes += votes
             result += "{\"option\": \"" + str(option.choice_text) + "\", \"votes\": \"" + str(votes) + "\"}"
 
             if j != (opt_count-1):
@@ -364,6 +373,7 @@ def combine_decryptions_and_tally(event):
             result += ","
 
         poll.result_json = result
+        poll.total_votes = total_votes
         poll.save()
 
     # Email the list of organisers to inform them that the results for this event are ready
