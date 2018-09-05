@@ -4,77 +4,86 @@
 {% block sk-file-name %}{{ event.title|safe }}{% endblock %}
 
 {% block content %}
-<script type="text/javascript">
-    // This is what we expect the SK supplied by the trustee to generate
-    var trustee_pk = "{{ trustee_pk }}";
 
-    var tempParams = "{{ event.EID_crypto|escapejs }}";
-    tempParams = JSON.parse(tempParams);
-</script>
+{% if is_trustee and can_submit %}
+    <script type="text/javascript">
+        // This is what we expect the SK supplied by the trustee to generate
+        var trustee_pk = "{{ trustee_pk }}";
 
-<div class="container">
-  <h2>Trustee Event Decryption for Event '{{ event.title }}'</h2>
-    <hr/>
-  <div class="panel panel-default">
-      <div class="panel-heading"><strong>Upload your Secret Key as '{{ user_email }}'</strong></div>
-      <div class="panel panel-body">
-          <input id="secret-key" name="secret-key" class="textinput textInput form-control" type="text" disabled/>
-          <div class="alert alert-info" role="alert" style="margin-top: 0.75em;">
-              Your secret key will be used to decrypt the event and get a vote tally for every poll.
-              It won't be sent to the server.
+        var tempParams = "{{ event.EID_crypto|escapejs }}";
+        tempParams = JSON.parse(tempParams);
+    </script>
+
+    <div class="container">
+      <h2>Trustee Event Decryption for Event '{{ event.title }}'</h2>
+        <hr/>
+      <div class="panel panel-default">
+          <div class="panel-heading"><strong>Upload your Secret Key as '{{ user_email }}'</strong></div>
+          <div class="panel panel-body">
+              <input id="secret-key" name="secret-key" class="textinput textInput form-control" type="text" disabled/>
+              <div class="alert alert-info" role="alert" style="margin-top: 0.75em;">
+                  Your secret key will be used to decrypt the event and get a vote tally for every poll.
+                  It won't be sent to the server.
+              </div>
+              <label for="files_sk_upload" class="btn btn-primary">
+                 <span class="glyphicon glyphicon-cloud-upload"></span>
+                  Upload Key
+              </label>
+              <input type="file" id="files_sk_upload" name="file" class="btn-info">
           </div>
-          <label for="files_sk_upload" class="btn btn-primary">
-             <span class="glyphicon glyphicon-cloud-upload"></span>
-              Upload Key
-          </label>
-          <input type="file" id="files_sk_upload" name="file" class="btn-info">
-      </div>
-      <br/>
-      <div class="panel-heading"><strong>Encrypted Event Data</strong></div>
-      <div class="panel panel-body">
-          <form id="cipher-form" method="POST">
-              {% csrf_token %}
-              {% for opts_ciphers in poll_ciphers %}
-                  {% for cipher in opts_ciphers %}
-                      <input id="cipher"
-                             name="poll-{{ forloop.parentloop.counter0 }}-cipher-{{ forloop.counter0 }}"
-                             class="textinput textInput form-control"
-                             type="text"
-                             value="{ &quot;C1&quot;: &quot;{{ cipher.C1 }}&quot;, &quot;C2&quot;: &quot;{{ cipher.C2 }}&quot; }"
-                             />
+          <br/>
+          <div class="panel-heading"><strong>Encrypted Event Data</strong></div>
+          <div class="panel panel-body">
+              <form id="cipher-form" method="POST">
+                  {% csrf_token %}
+                  {% for opts_ciphers in poll_ciphers %}
+                      {% for cipher in opts_ciphers %}
+                          <input id="cipher"
+                                 name="poll-{{ forloop.parentloop.counter0 }}-cipher-{{ forloop.counter0 }}"
+                                 class="textinput textInput form-control"
+                                 type="text"
+                                 value="{ &quot;C1&quot;: &quot;{{ cipher.C1 }}&quot;, &quot;C2&quot;: &quot;{{ cipher.C2 }}&quot; }"
+                                 />
 
+                          <br/>
+                      {% endfor %}
                       <br/>
                   {% endfor %}
-                  <br/>
-              {% endfor %}
-              <button id="decrypt-btn"
-
-                      onclick="decryptSubmitCiphers()"
-                      class="btn btn-success">
-                      Send Partial Decryptions</button>
-          </form>
+                  <button id="decrypt-btn"
+                          type="button"
+                          onclick="decryptSubmit()"
+                          class="btn btn-success">
+                          Send Partial Decryptions</button>
+              </form>
+          </div>
       </div>
-  </div>
-</div>
-
-<!-- Information Dialog called upon request -->
-<div class="modal fade" id="modalDialog" role="dialog" tabindex="-1" data-backdrop="static">
-    <div class="modal-dialog" role="document">
-
-      <!-- Dialog content-->
-      <div class="modal-content">
-        <div class="modal-header">
-            <h4 class="modal-title" style="text-align: center"><strong>Partial Decryption Successfully Received</strong></h4>
-        </div>
-        <div class="modal-body">
-            <p>Thank you! You can now close down this page.</p>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-        </div>
-      </div>
-
     </div>
-</div>
+
+    <!-- Information Dialog called upon request -->
+    <div class="modal fade" id="EventDecryptionModalDialog" role="dialog" tabindex="-1" data-backdrop="static">
+        <div class="modal-dialog" role="document">
+
+          <!-- Dialog content-->
+          <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" style="text-align: center"><strong>Partial Decryptions Successfully Received</strong></h4>
+            </div>
+            <div class="modal-body">
+                <p>Thank you! You can now close down this page.</p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+          </div>
+
+        </div>
+    </div>
+{% else %}
+    <div class="container">
+        <div class="alert alert-warning" role="alert">
+            <p>{{ access_denied_reason }}</p>
+        </div>
+    </div>
+{% endif %}
 
 {% endblock %}

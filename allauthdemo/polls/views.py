@@ -253,14 +253,16 @@ def event_trustee_setup(request, event_id):
         email_key = event.keys.filter(key=access_key)
         if email_key.exists() and event.users_trustees.filter(email=email_key[0].user.email).exists():
             if TrusteeKey.objects.filter(event=event, user=email_key[0].user).exists():
-                messages.add_message(request, messages.WARNING, 'You have already submitted your key for this event')
-                return HttpResponseRedirect(reverse("user_home"))
+                return render(request, "polls/event_setup.html", {"is_trustee": True,
+                                                                  "can_submit": False,
+                                                                  "access_denied_reason": "You have already submitted your public key for this event. Thank you!"
+                                                                  })
             if request.method == "POST":
                 form = EventSetupForm(request.POST)
 
                 # If form data is valid, create a TrusteeKey object with the supplied public key
                 if form.is_valid():
-                    public_key = request.POST["public_key"]
+                    public_key = request.POST.get("public_key")
                     key = TrusteeKey.objects.get_or_create(event=event, user=email_key[0].user)[0]
                     key.key = public_key
                     key.save()
@@ -280,11 +282,18 @@ def event_trustee_setup(request, event_id):
                     return HttpResponseRedirect(reverse("user_home"))
             else:
                 form = EventSetupForm()
-                return render(request, "polls/event_setup.html", {"event": event, "form": form, "user_email": email_key[0].user.email})
+                return render(request, "polls/event_setup.html", {"event": event,
+                                                                  "form": form,
+                                                                  "user_email": email_key[0].user.email,
+                                                                  "is_trustee": True,
+                                                                  "can_submit": True
+                                                                  })
 
-    #if no key or is invalid?
-    messages.add_message(request, messages.WARNING, 'You do not have permission to access: ' + request.path)
-    return HttpResponseRedirect(reverse("user_home"))
+    else:
+        return render(request, "polls/event_setup.html", {"is_trustee": False,
+                                                          "can_submit": False,
+                                                          "access_denied_reason": "You do not have permission to access this page."
+                                                          })
 
 
 def event_end(request, event_id):
@@ -311,11 +320,10 @@ def event_trustee_decrypt(request, event_id):
         if email_key.exists() and event.users_trustees.filter(email=trustee.email).exists():
 
             if PartialBallotDecryption.objects.filter(event=event, user=trustee).count() == event.total_num_opts():
-
-                warning_msg = 'You have already provided your decryption key for this event - Thank You'
-                messages.add_message(request, messages.WARNING, warning_msg)
-
-                return HttpResponseRedirect(reverse("user_home"))
+                return render(request, "polls/event_decrypt.html", {"is_trustee": True,
+                                                                    "can_submit": False,
+                                                                    "access_denied_reason": "You have already submitted your partial decryptions for this event. Thank you!"
+                                                                    })
             elif request.method == "GET":
                 # Get the Trustee's original PK - used in the template for SK validation
                 trustee_pk = TrusteeKey.objects.get(event=event, user=trustee).key
@@ -344,7 +352,9 @@ def event_trustee_decrypt(request, event_id):
                                   "event": event,
                                   "user_email": trustee.email,
                                   "trustee_pk": trustee_pk,
-                                  "poll_ciphers": poll_ciphers
+                                  "poll_ciphers": poll_ciphers,
+                                  "is_trustee": True,
+                                  "can_submit": True
                               })
 
             elif request.method == "POST":
@@ -359,7 +369,7 @@ def event_trustee_decrypt(request, event_id):
                         input_name = str("")
                         input_name = "poll-" + str(i) + "-cipher-" + str(j)
 
-                        part_dec = request.POST[input_name]
+                        part_dec = request.POST.get(input_name)
 
                         PartialBallotDecryption.objects.create(event=event,
                                                                poll=polls[i],
@@ -381,8 +391,10 @@ def event_trustee_decrypt(request, event_id):
                 return HttpResponseRedirect(reverse("user_home"))
 
     # Without an access key, the client does not have permission to access this page
-    messages.add_message(request, messages.WARNING, 'You do not have permission to decrypt this Event.')
-    return HttpResponseRedirect(reverse("user_home"))
+    return render(request, "polls/event_decrypt.html", {"is_trustee": False,
+                                                        "can_submit": False,
+                                                        "access_denied_reason": "You don't have permission to access this page."
+                                                        })
 
 
 def manage_questions(request, event_id):

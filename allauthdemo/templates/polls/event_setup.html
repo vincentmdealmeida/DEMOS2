@@ -6,34 +6,66 @@
 
 {% block content %}
 
-<div class="container">
-  <h2>Trustee Event Setup for Event '{{ event.title }}'</h2>
-  <hr/>
-  <h4>Key Generation For: {{ user_email }}</h4>
-  <br/>
-  <div class="panel panel-default">
-    <div class="panel-heading"><strong>Step 1: Generate and Download Your Secret Key</strong></div>
-    <div class="panel panel-body">
-      <input id="secret-key" class="textinput textInput form-control" type="text"/>
-      <input id="event-param" type="text" value="{{event.EID}}" hidden/>
-      <div class="alert alert-warning" role="alert" style="margin-top: 0.75em;">
-          <strong>Warning:</strong> This key can <strong>NOT</strong> be recalculated if forgotten or lost! Ensure you back this up.
+<script type="text/javascript">
+    var EVENT_TITLE = "{{ event.title|safe }}";
+</script>
+
+{% if is_trustee and can_submit %}
+    <div class="container">
+      <h2>Trustee Event Setup for Event '{{ event.title }}'</h2>
+      <hr/>
+      <h4>Key Generation For: {{ user_email }}</h4>
+      <br/>
+      <div class="panel panel-default">
+        <div class="panel-heading"><strong>Step 1: Generate and Download Your Secret Key</strong></div>
+        <div class="panel panel-body">
+          <input id="secret-key" class="textinput textInput form-control" type="text"/>
+          <input id="event-param" type="text" value="{{event.EID}}" hidden/>
+          <div class="alert alert-warning" role="alert" style="margin-top: 0.75em;">
+              <strong>Warning:</strong> This key can <strong>NOT</strong> be recalculated if forgotten or lost! Ensure you back this up.
+          </div>
+          <button id="keygen-btn" onclick="generateKeys()" class="btn btn-success">Generate</button>
+          <a id="download-btn" role="button" href="#" class="btn btn-primary" disabled>Download</a>
+        </div>
       </div>
-      <button id="keygen-btn" onclick="demosEncrypt.generateKeys()" class="btn btn-success">Generate</button>
-      <a id="download-btn" role="button" href="#" class="btn btn-primary" disabled>Download</a>
+      <div class="panel panel-default">
+        <div class="panel-heading"><strong>Step 2: Submit Your Public Key</strong></div>
+        <div class="panel panel-body">
+            {% load crispy_forms_tags %}
+            <form method="post" action="" class="">
+                {% crispy form %}
+                <p>Ensure your secret key is backed up before submitting.</p>
+                <button id="public-submit" class="btn btn-danger" type="button" onclick="submitPublicKey()" disabled>Submit</button>
+            </form>
+        </div>
+      </div>
     </div>
-  </div>
-  <div class="panel panel-default">
-    <div class="panel-heading"><strong>Step 2: Submit Your Public Key</strong></div>
-    <div class="panel panel-body">
-        {% load crispy_forms_tags %}
-        <form method="post" action="" class="">
-            {% crispy form %}
-            <p>Ensure your secret key is backed up before submitting.</p>
-            <input id="public-submit" class="btn btn-danger" type="submit" value="Submit" disabled/>
-        </form>
+
+    <!-- Information Dialog called upon request -->
+    <div class="modal fade" id="EventSetupModalDialog" role="dialog" tabindex="-1" data-backdrop="static">
+        <div class="modal-dialog" role="document">
+
+          <!-- Dialog content-->
+          <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" style="text-align: center"><strong>Public Key Successfully Received</strong></h4>
+            </div>
+            <div class="modal-body">
+                <p>Thank you! You can now close down this page.</p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+          </div>
+
+        </div>
     </div>
-  </div>
-</div>
+{% else %}
+    <div class="container">
+        <div class="alert alert-warning" role="alert">
+            <p>{{ access_denied_reason }}</p>
+        </div>
+    </div>
+{% endif %}
 
 {% endblock %}
