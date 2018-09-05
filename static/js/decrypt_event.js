@@ -1,6 +1,7 @@
 // -------------- Global vars --------------------
 var filesHandleSK = document.getElementById('files_sk_upload');
 var CSRF = $( "input[name='csrfmiddlewaretoken']" ).val();
+var partialDecryptions = {};
 
 // -------------- Helper fns --------------------
 //SK checking algorithm - If PK and SK matches, it returns True; otherwise, it returns false.
@@ -15,6 +16,14 @@ function csrfSafeMethod(method) {
     return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
 }
 
+function getBytes(arr) {
+    for(var i = 0; i < arr.length; i++) {
+      arr[i] = parseInt(arr[i]);
+    }
+
+    return new Uint8Array(arr);
+}
+
 function getKeyBytes(key, byteArray) {
     for(let i = 0; i < key.length; i += 4) {
         let B64EncodedByte = key.substring(i, i + 4);
@@ -23,8 +32,8 @@ function getKeyBytes(key, byteArray) {
     }
 }
 
-function showDialog(titleTxt, bodyTxt) {
-    var modalDialog = $('#modalDialog');
+function showDecryptDialog(titleTxt, bodyTxt) {
+    var modalDialog = $('#EventDecryptionModalDialog');
     var title = modalDialog.find('.modal-title');
     var body = modalDialog.find('.modal-body');
 
@@ -79,7 +88,7 @@ function validateSKFromString(SKStr) {
     return skCheck(ctx, params, sk, pk);
 }
 
-function decryptSubmitCiphers() {
+function decryptSubmit() {
     var skString = $('#secret-key').val();
 
     if (!skString) {
@@ -96,7 +105,6 @@ function decryptSubmitCiphers() {
 
         inputs.each(function() { //for each ciphertext to decrypt
           let input = $(this);
-          console.log(input.attr('name'));
 
           var ciphertext = {
               C1: null,
@@ -116,8 +124,36 @@ function decryptSubmitCiphers() {
           var bytes = [];
           partial.D.toBytes(bytes);
           input.val(bytes.toString());
+
+          partialDecryptions[input.attr('name')] = bytes.toString();
         });
+
+        submitPartialDecryptions();
     }
+}
+
+function onAfterPartialDecryptionsSend() {
+    showDecryptDialog('Partial Decryptions Successfully Received',
+        'Thank you! You can now close down this page.');
+}
+
+function submitPartialDecryptions() {
+    $.ajaxSetup({
+        beforeSend: function(xhr, settings) {
+            if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                xhr.setRequestHeader("X-CSRFToken", CSRF);
+            }
+        }
+    });
+
+    $.ajax({
+         type : "POST",
+         url : window.location,
+         data : partialDecryptions,
+         success : function(){
+             onAfterPartialDecryptionsSend();
+         }
+    });
 }
 
 function processFileSKChange(event) {
@@ -154,3 +190,8 @@ function processFileSKChange(event) {
 if(filesHandleSK) {
     filesHandleSK.addEventListener('change', processFileSKChange, false);
 }
+
+$('#EventDecryptionModalDialog').on('hide.bs.modal', function (e) {
+    // Update page to reflect the fact that the PK submission has taken place
+    location.reload();
+});
