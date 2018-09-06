@@ -11,7 +11,8 @@ from allauthdemo.auth.models import DemoUser
 
 
 class EmailUser(models.Model):
-    email = models.CharField(max_length=80, unique=True)
+    email = models.CharField(max_length=200, unique=True)
+    alias = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     def send_email(self, subject, message, from_email=None):
         """

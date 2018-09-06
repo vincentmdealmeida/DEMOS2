@@ -551,3 +551,10 @@ def del_event(request, event_id):
     elif request.method == "POST":
         event.delete()
         return HttpResponseRedirect(reverse('polls:index'))
+
+
+def bulletin_board(request, event_id):
+    event = get_object_or_404(Event, pk=event_id)
+    if request.method == "GET":
+        return render(request, "polls/bulletin_board.html", {"event": event})
+
