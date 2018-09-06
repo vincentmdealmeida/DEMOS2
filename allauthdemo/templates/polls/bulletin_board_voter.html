@@ -21,7 +21,7 @@
             <hr>
             <p><strong>Voter Alias:</strong> {{ voter_alias }}</p>
             <p style="word-break: break-all"><strong>Encrypted Ballot Handle:</strong> {{ ballot.enc_ballot_handle }}</p>
-            <p><strong>Poll:</strong> {{ ballot.poll.question_text }}</p>
+            <p><strong>Cast in Poll:</strong> {{ ballot.poll.question_text }}</p>
             <p><strong>Selected Ballot:</strong> {{ ballot.selection }}</p>
             <label for="json">JSON of Selected Ballot:</label>
             <textarea class="form-control" rows="5" id="json">{{ ballot.json_str }}</textarea>

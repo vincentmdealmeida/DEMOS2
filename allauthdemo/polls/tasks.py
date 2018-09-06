@@ -78,7 +78,9 @@ def email_e_results_ready(event):
     email_body += "This email is to inform you that all of the partial decryptions for the event '" + event_title + \
                   "' have been supplied. These have been used to decrypt the results which are now available.\n\n"
     email_body += "As an organiser, the event results can be found at the following URL:\n\n"
-    email_body += "http://" + settings.DOMAIN + "/event/" + str(event.pk) + "/results/"
+    email_body += "http://" + settings.DOMAIN + "/event/" + str(event.pk) + "/results/\n\n"
+    email_body += "Additionally, the bulletin board for this event can be found at:\n\n"
+    email_body += "http://" + settings.DOMAIN + "/event/" + str(event.pk) + "/bulletin_board/"
     email_body += get_email_sign_off()
 
     # Get all of the organisers for the event and send them an email
@@ -86,6 +88,28 @@ def email_e_results_ready(event):
 
     for organiser in organisers:
         organiser.email_user(email_subject, email_body)
+
+
+def email_voters_bulletin_url(event):
+    event_title = event.title
+    email_subject = "Bulletin Boards for Event '" + event_title + "' Are Now Ready for Viewing"
+
+    # Construct the email body. This can be later replaced by a HTML email.
+    email_body_base = str("")
+    email_body_base += "Dear Voter,\n\n"
+    email_body_base += "The bulletin boards for the event '" + event_title + "' are now ready for viewing. They can be "
+    email_body_base += "accessed from the following URL:\n\n"
+    email_body_base += "http://" + settings.DOMAIN + "/event/" + str(event.pk) + "/bulletin_board/\n\n"
+    email_body_base += "As a reminder your voter alias (which is used to anonymize your vote on the bulletin board) is as follows:\n\n"
+
+    # Email the list of voters
+    voters = event.voters.all()
+
+    for voter in voters:
+        email_body = str(email_body_base + str(voter.alias))
+        email_body += get_email_sign_off()
+
+        voter.send_email(email_subject, email_body)
 
 
 '''
@@ -376,6 +400,10 @@ def combine_decryptions_and_tally(event):
         poll.total_votes = total_votes
         poll.save()
 
-    # Email the list of organisers to inform them that the results for this event are ready
+    # Email the list of organisers to inform them that the results for this event are ready. This and the next fn call
+    # are not done outside this task (in their own tasks) as it's dependent on the results being successfully tallied
     email_e_results_ready(event)
+
+    # Email the list of voters a link to the event's bulletin boards
+    email_voters_bulletin_url(event)
 
