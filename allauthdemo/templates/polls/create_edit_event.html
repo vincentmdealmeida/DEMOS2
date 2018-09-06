@@ -4,7 +4,7 @@
 
 
 {% block content %}
-
+{% if can_access %}
 <script type="text/javascript">
     // This events list is generated for later input validation
     var events_list = [
@@ -759,5 +759,13 @@
     </div>
   </div>
 </div>
+{% else %}
 
+<div class="container">
+    <div class="alert alert-warning" role="alert">
+        <p>{{ access_denied_reason }}</p>
+    </div>
+</div>
+
+{% endif %}
 {% endblock %}

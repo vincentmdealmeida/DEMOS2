@@ -1,0 +1,48 @@
+{% extends "bases/bootstrap-with-nav.html" %}
+{% load staticfiles %}
+{% load bootstrap3 %}
+
+{% block content %}
+     <div class="container">
+        <div id="pageHeader">
+            <!-- Heading -->
+            <h2>Bulletin Board for the Poll '{{ poll.question_text }}' in the Event: {{event.title}}</h2>
+        </div>
+        <div id="pageBody">
+            <hr>
+            <p>Please see below a list of all <strong>cast</strong> ballots for this poll. Voters, you can audit your
+            own ballot by viewing it and then selecting the 'Audit' button.</p>
+            <br>
+            <div class="form-group">
+               <table id="bbs-table" class="table table-hover">
+                  <thead>
+                    <tr>
+                        <th class="text-center">#</th>
+                        <th class="text-center">Voter Alias</th>
+                        <th class="text-center">Encrypted Ballot Handle</th>
+                        <th class="text-center">Ballot Selection</th>
+                        <th class="text-center">View</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                        {% for ballot in ballots %}
+                           {% if ballot.cast %}
+                            <tr>
+                               <td class="text-center">{{ forloop.counter }}</td>
+                               <td class="text-center">{{ ballot.voter.alias }}</td>
+                               <td class="text-center ballotHandleTD">{{ ballot.enc_ballot_handle }}</td>
+                               <td class="text-center">{{ ballot.selection }}</td>
+                               <td class="text-center">
+                                   <a href="{% url 'polls:voter-board' event.uuid poll.uuid ballot.voter.alias %}" class="btn btn-primary">
+                                       <span class="glyphicon glyphicon-th-list"></span> View
+                                   </a>
+                               </td>
+                           </tr>
+                            {% endif %}
+                        {% endfor %}
+                  </tbody>
+               </table>
+            </div>
+        </div>
+     </div>
+{% endblock %}

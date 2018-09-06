@@ -13,7 +13,7 @@ from django.views import generic
 from django.conf import settings
 
 from .forms import PollForm, OptionFormset, VoteForm, EventSetupForm, EventEditForm
-from .models import Event, Poll, Ballot, EncBallot,  EncryptedVote, TrusteeKey, PartialBallotDecryption, CombinedBallot, VoteFragment
+from .models import Event, Poll, Ballot, EncBallot,  EncryptedVote, TrusteeKey, PartialBallotDecryption, CombinedBallot, VoteFragment, EmailUser
 from allauthdemo.auth.models import DemoUser
 
 from .tasks import email_trustees_prep, update_EID, generate_combpk, event_ended, create_ballots
@@ -221,6 +221,7 @@ def event_vote(request, event_id, poll_id):
         ballot.cast = True
         ballot.selection = selection
         ballot.json_str = ballot_str
+        ballot.enc_ballot_handle = handle_json
         ballot.save()
 
         voter = email_key[0].user
@@ -433,7 +434,7 @@ def manage_questions(request, event_id):
 
 def render_invalid(request, events, demo_users, invalid_fields):
     return render(request,
-                  "polls/create_event.html",
+                  "polls/create_edit_event.html",
                   {
                       "G_R_SITE_KEY": settings.RECAPTCHA_PUBLIC_KEY,
                       "user_email": request.user.email,
@@ -495,53 +496,32 @@ def create_event(request):
     elif request.method == "GET":
         # Render the template
         return render(request,
-                      "polls/create_event.html",
+                      "polls/create_edit_event.html",
                       {
                           "G_R_SITE_KEY": settings.RECAPTCHA_PUBLIC_KEY,
                           "user_email": request.user.email,
                           "events": events,
-                          "demo_users": demo_users
+                          "demo_users": demo_users,
+                          "can_access": True
                       })
     else:
         return HttpResponseNotAllowed()
 
 
 def edit_event(request, event_id):
+    # TODO: EventModelAdaptor returns an invalid_fields object that create_edit_event page can use to fill out
+    # TODO: the entire form. This can be used to power the edit functionality but this needs tweaking to take this
+    # TODO: from just being used for invalid data to being flexible to accept invalid and valid data depending on the
+    # TODO: state of the form. See create_event fn for example usage
     event = get_object_or_404(Event, pk=event_id)
+
     if request.method == "GET":
-        form = EventEditForm(instance=event, prefix="main")
-        '''
-        organiser_initial_data = [{'email': request.user.email}]
-        trustee_initial_data = []
-        for user in event.users_organisers.exclude(email=request.user.email):
-            organiser_initial_data.append({'email': user.email})
-        organiser_formset = OrganiserFormSet(prefix="formset_organiser", initial=organiser_initial_data)
-        for trustee in event.users_trustees.all():
-            trustee_initial_data.append({'email': trustee.email})
-        trustee_formset = TrusteeFormSet(prefix="formset_trustee", initial=trustee_initial_data)
-        '''
-    elif request.method == "POST":
-        form = EventEditForm(request.POST, instance=event, prefix="main")
-        #trustee_formset = TrusteeFormSet(request.POST, prefix="formset_trustee")
-        #organiser_formset = OrganiserFormSet(request.POST, prefix="formset_organiser") # incase form fails, we still want to retain formset data
-        if form.is_valid():
-            form.save()
-            '''
-            if organiser_formset.is_valid():
-                event.users_organisers.clear()
-                for oform in organiser_formset:
-                    if (oform.cleaned_data.get('email')):
-                        event.users_organisers.add(DemoUser.objects.get(email=oform.cleaned_data['email']))
-                event.users_organisers.add(request.user) # always add editor/creator
-                if trustee_formset.is_valid():
-                    event.users_trustees.clear()
-                    for tform in trustee_formset:
-                        if (tform.cleaned_data.get('email')):
-                            event.users_trustees.add(EmailUser.objects.get_or_create(email=tform.cleaned_data['email'])[0])
-            '''
-            return HttpResponseRedirect(reverse('polls:view-event', kwargs={'pk': event.id}))
-    return render(request, "polls/generic_form.html", {"form_title": "Edit Event: " + event.title, "form": form}) #"organiser_formset": organiser_formset, "trustee_formset": trustee_formset})
-        #trustee_formset = TrusteeFormSet(request.POST, prefix="formset_trustee", instance=event)
+        return render(request,
+                      "polls/create_edit_event.html",
+                      {
+                          "can_access": False,
+                          "access_denied_reason": "Event editing functionality is not currently operational."
+                      })
 
 
 def del_event(request, event_id):
@@ -553,8 +533,37 @@ def del_event(request, event_id):
         return HttpResponseRedirect(reverse('polls:index'))
 
 
-def bulletin_board(request, event_id):
+def bulletin_boards(request, event_id):
     event = get_object_or_404(Event, pk=event_id)
+
     if request.method == "GET":
-        return render(request, "polls/bulletin_board.html", {"event": event})
+        return render(request, "polls/bulletin_boards.html", {"event": event})
+
+
+def bulletin_board(request, event_id, poll_id):
+    event = get_object_or_404(Event, pk=event_id)
+    poll = get_object_or_404(Poll, pk=poll_id)
+    ballots = Ballot.objects.filter(poll=poll)
+
+    if request.method == "GET":
+        return render(request, "polls/bulletin_board_poll.html", {
+            "event": event,
+            "poll": poll,
+            "ballots": ballots
+        })
+
+
+def voter_board(request, event_id, poll_id, voter_alias):
+    event = get_object_or_404(Event, pk=event_id)
+    poll = get_object_or_404(Poll, pk=poll_id)
+    voter = EmailUser.objects.filter(alias=voter_alias)
+    ballot = Ballot.objects.filter(poll=poll, voter=voter).get()
+
+    if request.method == "GET":
+        return render(request, "polls/bulletin_board_voter.html", {
+            "event_uuid": event.uuid,
+            "poll": poll,
+            "voter_alias": voter_alias,
+            "ballot": ballot
+        })
 

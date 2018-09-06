@@ -56,7 +56,7 @@ function validateSKFromString(SKStr) {
 
     // Check that the length is valid, otherwise display an error
     if(!(SKStr.length % 4 === 0)) {
-        showDialog('Error',
+        showDecryptDialog('Error',
             'The length of the supplied secret key appears to be invalid. Check and try again.');
     }
 
@@ -92,7 +92,7 @@ function decryptSubmit() {
     var skString = $('#secret-key').val();
 
     if (!skString) {
-        showDialog('Error', 'You haven\'t supplied your secret key. Please go back and upload this from file.');
+        showDecryptDialog('Error', 'You haven\'t supplied your secret key. Please go back and upload this from file.');
     }
     else {
         // Rebuild the trustee's secret key
@@ -150,7 +150,7 @@ function submitPartialDecryptions() {
          type : "POST",
          url : window.location,
          data : partialDecryptions,
-         success : function(){
+         success : function() {
              onAfterPartialDecryptionsSend();
          }
     });
@@ -169,7 +169,7 @@ function processFileSKChange(event) {
             // Check that the SK string is not blank
             if(SKStr === '') {
                 // Show a dialog informing the user that they've uploaded a blank file
-                showDialog('Error', 'The file you have uploaded is blank.');
+                showDecryptDialog('Error', 'The file you have uploaded is blank.');
             }
 
             const valid = validateSKFromString(SKStr);
@@ -178,7 +178,7 @@ function processFileSKChange(event) {
                 $('input#secret-key').val(SKStr);
             } else {
                 // Show a dialog informing the user that they've supplied an invalid SK
-                showDialog('Error',
+                showDecryptDialog('Error',
                     'The secret key you have supplied is invalid and doesn\'t match with the recorded public key.');
             }
         };
