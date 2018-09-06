@@ -13,7 +13,7 @@ from django.views import generic
 from django.conf import settings
 
 from .forms import PollForm, OptionFormset, VoteForm, EventSetupForm, EventEditForm
-from .models import Event, Poll, Ballot, EncBallot,  EncryptedVote, TrusteeKey, PartialBallotDecryption, CombinedBallot, VoteFragment
+from .models import Event, Poll, Ballot, EncBallot,  EncryptedVote, TrusteeKey, PartialBallotDecryption, CombinedBallot, VoteFragment, EmailUser
 from allauthdemo.auth.models import DemoUser
 
 from .tasks import email_trustees_prep, update_EID, generate_combpk, event_ended, create_ballots
@@ -221,6 +221,7 @@ def event_vote(request, event_id, poll_id):
         ballot.cast = True
         ballot.selection = selection
         ballot.json_str = ballot_str
+        ballot.enc_ballot_handle = handle_json
         ballot.save()
 
         voter = email_key[0].user
@@ -553,8 +554,37 @@ def del_event(request, event_id):
         return HttpResponseRedirect(reverse('polls:index'))
 
 
-def bulletin_board(request, event_id):
+def bulletin_boards(request, event_id):
     event = get_object_or_404(Event, pk=event_id)
+
     if request.method == "GET":
-        return render(request, "polls/bulletin_board.html", {"event": event})
+        return render(request, "polls/bulletin_boards.html", {"event": event})
+
+
+def bulletin_board(request, event_id, poll_id):
+    event = get_object_or_404(Event, pk=event_id)
+    poll = get_object_or_404(Poll, pk=poll_id)
+    ballots = Ballot.objects.filter(poll=poll)
+
+    if request.method == "GET":
+        return render(request, "polls/bulletin_board_poll.html", {
+            "event": event,
+            "poll": poll,
+            "ballots": ballots
+        })
+
+
+def voter_board(request, event_id, poll_id, voter_alias):
+    event = get_object_or_404(Event, pk=event_id)
+    poll = get_object_or_404(Poll, pk=poll_id)
+    voter = EmailUser.objects.filter(alias=voter_alias)
+    ballot = Ballot.objects.filter(poll=poll, voter=voter).get()
+
+    if request.method == "GET":
+        return render(request, "polls/bulletin_board_voter.html", {
+            "event_uuid": event.uuid,
+            "poll": poll,
+            "voter_alias": voter_alias,
+            "ballot": ballot
+        })
 

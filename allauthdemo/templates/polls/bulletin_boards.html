@@ -15,7 +15,7 @@
             </div>{% endcomment %}
         </div>
         <div id="pageBody">
-            <br>
+            <hr>
             <p>This page groups together all of the bulletin boards for each poll of the event. Within each board you
             can audit your own votes.</p>
             <br>
@@ -35,10 +35,17 @@
                            <tr>
                                <td class="text-center">{{ poll.question_text }}</td>
                                <td class="text-center">{{ poll.total_votes }}</td>
-                               <td class="text-center">TODO</td>
-                               <td class="text-center">TODO</td>
                                <td class="text-center">
-                                   <a href="{% url 'polls:vote_audit' %}">View</a>
+                                   {% load custom_filters_tags %}
+                                   {{ poll.uuid|get_total_num_voters }}
+                               </td>
+                               <td class="text-center">
+                                   {{ poll.uuid|get_turnout }}%
+                               </td>
+                               <td class="text-center">
+                                   <a href="{% url 'polls:bulletin-board' event.uuid poll.uuid %}" class="btn btn-primary">
+                                       <span class="glyphicon glyphicon-th-list"></span> View
+                                   </a>
                                </td>
                            </tr>
                         {% endfor %}

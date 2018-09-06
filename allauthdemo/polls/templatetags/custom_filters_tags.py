@@ -1,9 +1,10 @@
 from django import template
+from allauthdemo.polls.models import Ballot
+from allauthdemo.polls.models import Poll
 
 register = template.Library()
 
-#get a value for additively homomorphic encryption ballots
-#we can't do maths in the template normally so a filter is a way around it
+
 @register.filter
 def get_ballot_value(option_no, options_count):
     ballot_value = ""
@@ -19,3 +20,18 @@ def get_ballot_value(option_no, options_count):
             ballot_value = ballot_value + ","
 
     return ballot_value
+
+
+@register.filter
+def get_total_num_voters(poll_uuid):
+    poll = Poll.objects.filter(uuid=poll_uuid).get()
+    return Ballot.objects.filter(poll=poll).count()
+
+
+@register.filter
+def get_turnout(poll_uuid):
+    poll = Poll.objects.filter(uuid=poll_uuid).get()
+    voters_count = float(Ballot.objects.filter(poll=poll).count())
+    turnout = float(poll.total_votes) / voters_count
+    return "%.2f" % (turnout * 100)
+

@@ -208,6 +208,7 @@ class Ballot(models.Model):
     poll = models.ForeignKey(Poll, on_delete=models.CASCADE, related_name="ballots")
     selection = models.CharField(max_length=1)
     json_str = models.CharField(max_length=10240)
+    enc_ballot_handle = models.CharField(max_length=255)
     cast = models.BooleanField(default=False)
 
 

@@ -1,0 +1,30 @@
+{% extends "bases/bootstrap-with-nav.html" %}
+{% load staticfiles %}
+{% load bootstrap3 %}
+
+{% block content %}
+     <div class="container">
+        <a href="{% url 'polls:bulletin-board' event_uuid poll.uuid %}"><< Back To Ballot List</a>
+        <div id="pageHeader">
+            <!-- Heading -->
+            <div class="col-xs-7 col-sm-9 col-md-9">
+                <h2>Ballot Detail</h2>
+            </div>
+            <!-- Action Buttons -->
+            <div class="col-xs-5 col-sm-3 col-md-3 marginTopEditButton">
+                <a href="{% url 'polls:vote_audit' %}?handle={{ ballot.enc_ballot_handle }}" class="btn btn-primary" style="float: right; margin-right: 0.4em;">
+                    <span class="glyphicon glyphicon-qrcode"></span> Audit Ballot
+                </a>
+            </div>
+        </div>
+        <div id="pageBody" style="margin-top: 5em">
+            <hr>
+            <p><strong>Voter Alias:</strong> {{ voter_alias }}</p>
+            <p style="word-break: break-all"><strong>Encrypted Ballot Handle:</strong> {{ ballot.enc_ballot_handle }}</p>
+            <p><strong>Poll:</strong> {{ ballot.poll.question_text }}</p>
+            <p><strong>Selected Ballot:</strong> {{ ballot.selection }}</p>
+            <label for="json">JSON of Selected Ballot:</label>
+            <textarea class="form-control" rows="5" id="json">{{ ballot.json_str }}</textarea>
+        </div>
+     </div>
+{% endblock %}

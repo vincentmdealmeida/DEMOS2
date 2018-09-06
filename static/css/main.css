@@ -235,3 +235,8 @@ img[src^="data"] {
   vertical-align: middle;
   line-height: 2.9em;
 }
+
+.ballotHandleTD {
+  max-width: 13em;
+  word-break: break-word;
+}

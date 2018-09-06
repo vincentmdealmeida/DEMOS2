@@ -361,7 +361,7 @@ def combine_decryptions_and_tally(event):
             # Get the vote tally for this option and add it to the results
             voters_count = event.voters.all().count()
             votes = get_tally(ballot_cipher, part_decs_text, event.EID, voters_count)
-            total_votes += votes
+            total_votes += int(votes)
             result += "{\"option\": \"" + str(option.choice_text) + "\", \"votes\": \"" + str(votes) + "\"}"
 
             if j != (opt_count-1):
