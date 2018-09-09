@@ -310,9 +310,21 @@ function generateBallots() {
     inputs.each(function() {
         let input = $(this);
 
-        if(input.prop('checked')) {
-            selectedOption = input.val();
-            selectedOption = document.getElementById(selectedOption).innerText;
+        if(MAX_SELECTIONS === 1) {
+            if(input.prop('checked')) {
+                let labelId = input.val();
+                selectedOption = document.getElementById(labelId).innerText;
+            }
+        } else if (MAX_SELECTIONS > 1) {
+            if(input.prop('checked')) {
+                let labelId = input.val();
+
+                if(selectedOption === "") {
+                    selectedOption += document.getElementById(labelId).innerText;
+                } else {
+                    selectedOption += ", " + document.getElementById(labelId).innerText;
+                }
+            }
         }
     });
 
@@ -478,7 +490,7 @@ function showSelectionConfirmationDialog(selection, selectedBallot, selectedBall
     let ul = document.createElement('ul');
 
     let selectedOptionLi = document.createElement('li');
-    selectedOptionLi.innerHTML = "Selected Option: " + selectedOption;
+    selectedOptionLi.innerHTML = "Selected Option(s): " + selectedOption;
 
     let ballotSelectionLi = document.createElement('li');
     ballotSelectionLi.innerHTML = "Selected Ballot: " + selection;

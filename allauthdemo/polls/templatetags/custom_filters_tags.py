@@ -31,7 +31,14 @@ def get_total_num_voters(poll_uuid):
 @register.filter
 def get_turnout(poll_uuid):
     poll = Poll.objects.filter(uuid=poll_uuid).get()
-    voters_count = float(Ballot.objects.filter(poll=poll).count())
-    turnout = float(poll.total_votes) / voters_count
+    ballots = Ballot.objects.filter(poll=poll)
+    cast_ballot_count = 0
+
+    for ballot in ballots:
+        if ballot.cast is True:
+            cast_ballot_count += 1
+
+    voters_count = float(ballots.count())
+    turnout = float(cast_ballot_count) / voters_count
     return "%.2f" % (turnout * 100)
 
